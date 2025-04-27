@@ -1,19 +1,118 @@
-const Jwt = require("@hapi/jwt");
-const InvariantError = require("../exceptions/InvariantError");
+const Jwt = require('@hapi/jwt');
+const InvariantError = require('../exceptions/InvariantError');
 
 const TokenManager = {
-  generateAccessToken: (payload) => Jwt.token.generate(payload, process.env.ACCESS_TOKEN_KEY),
-  generateRefreshToken: (payload) => Jwt.token.generate(payload, process.env.REFRESH_TOKEN_KEY),
+  generateAccessToken: (userId, userRole) => {
+    const payload = {
+      user: {
+        id: userId,
+        role: userRole
+      }
+    };
+
+    const token = Jwt.token.generate(
+      payload,
+      {
+        key: process.env.ACCESS_TOKEN_KEY,
+        algorithm: 'HS512'
+      },
+      {
+        ttlSec: 3600
+      }
+    );
+
+    // Mendekode token untuk mendapatkan informasi lengkap
+    const artifacts = Jwt.token.decode(token);
+
+    return {
+      token,
+      decodedToken: {
+        token,
+        decoded: artifacts.decoded,
+        raw: artifacts.raw
+      }
+    };
+  },
+
+  generateRefreshToken: (userId, userRole) => {
+    const payload = {
+      user: {
+        id: userId,
+        role: userRole
+      }
+    };
+    const token = Jwt.token.generate(
+      payload,
+      {
+        key: process.env.REFRESH_TOKEN_KEY,
+        algorithm: 'HS512'
+      },
+      {
+        ttlSec: 86400
+      }
+    );
+
+    const artifacts = Jwt.token.decode(token);
+
+    return {
+      token,
+      decodedToken: {
+        token,
+        decoded: artifacts.decoded,
+        raw: artifacts.raw
+      }
+    };
+  },
+
   verifyRefreshToken: (refreshToken) => {
     try {
       const artifacts = Jwt.token.decode(refreshToken);
       Jwt.token.verifySignature(artifacts, process.env.REFRESH_TOKEN_KEY);
-      const { payload } = artifacts.decoded;
-      return payload;
+
+      return {
+        token: refreshToken,
+        decodedToken: {
+          token: refreshToken,
+          decoded: artifacts.decoded,
+          raw: artifacts.raw
+        },
+        validResponse: { isValid: true },
+      };
     } catch (error) {
-      throw new InvariantError("Refresh token invalid");
+      return {
+        token: refreshToken,
+        validResponse: {
+          isValid: false,
+          error: error.message
+        }
+      };
     }
   },
+
+  verifyAccessToken: (accessToken) => {
+    try {
+      const artifacts = Jwt.token.decode(accessToken);
+      Jwt.token.verifySignature(artifacts, process.env.ACCESS_TOKEN_KEY);
+
+      return {
+        token: accessToken,
+        decodedToken: {
+          token: accessToken,
+          decoded: artifacts.decoded,
+          raw: artifacts.raw
+        },
+        validResponse: { isValid: true },
+      };
+    } catch (error) {
+      return {
+        token: accessToken,
+        validResponse: {
+          isValid: false,
+          error: error.message
+        }
+      };
+    }
+  }
 };
 
 module.exports = TokenManager;

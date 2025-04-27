@@ -14,17 +14,27 @@
     "migrate:down": "node-pg-migrate down"
   },
   "dependencies": {
+    "@hapi/basic": "^7.0.2",
+    "@hapi/boom": "^10.0.1",
     "@hapi/hapi": "^21.4.0",
+    "@hapi/inert": "^7.1.0",
     "@hapi/jwt": "^3.2.0",
+    "@hapi/scooter": "^7.0.0",
     "bcrypt": "^5.1.1",
-    "dotenv": "^16.4.7",
+    "blankie": "^5.0.0",
+    "dotenv": "^16.5.0",
+    "hapi-rate-limit": "^5.0.1",
     "joi": "^17.13.3",
     "nanoid": "^5.1.5",
     "node-pg-migrate": "^7.9.1",
+    "nodemailer": "^6.10.1",
     "pg": "^8.14.1",
     "uuid": "^11.1.0"
   },
   "devDependencies": {
+    "eslint": "^8.57.1",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.31.0",
     "nodemon": "^3.1.9"
   }
 }
