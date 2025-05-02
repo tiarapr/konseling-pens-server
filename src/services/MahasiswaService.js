@@ -180,22 +180,27 @@ class MahasiswaService {
 
   // Method to save the KTM file (upload)
   async saveKtmFile(file) {
+    // Ensure the file object contains the necessary properties
+    if (!file || !file.hapi || !file.hapi.filename) {
+      throw new InvariantError('Invalid file upload.');
+    }
+  
     // Tentukan path folder penyimpanan KTM
     const ktmStoragePath = path.join(this.storagePath, 'ktm');
-
+  
     // Pastikan folder /storage/ktm ada
     if (!fs.existsSync(ktmStoragePath)) {
       fs.mkdirSync(ktmStoragePath, { recursive: true }); // Buat folder jika belum ada
     }
-
+  
     // Buat nama file unik
     const fileName = `${Date.now()}_${file.hapi.filename}`;
     const filePath = path.join(ktmStoragePath, fileName);
-
+  
     return new Promise((resolve, reject) => {
       const fileStream = fs.createWriteStream(filePath);
       file.pipe(fileStream);
-
+  
       fileStream.on('finish', () => {
         resolve({
           fileName,
@@ -203,12 +208,12 @@ class MahasiswaService {
           url: `/storage/ktm/${fileName}`,
         });
       });
-
+  
       fileStream.on('error', (err) => {
         reject(new InvariantError("Gagal menyimpan file KTM"));
       });
     });
-  }
+  }  
 
   async getRekamMedisByNrp(nrp) {
     // Panggil fungsi getByNrp untuk mengambil data mahasiswa berdasarkan nrp
