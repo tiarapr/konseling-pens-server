@@ -12,17 +12,25 @@ class AdminProfilService {
   // Cek apakah user_id sudah terdaftar di profil lain
   async checkUserIdExists(userId) {
     const query = {
-      text: `SELECT 1 FROM admin_profil WHERE user_id = $1 
-             UNION 
-             SELECT 1 FROM konselor_profil WHERE user_id = $1 
-             UNION 
-             SELECT 1 FROM kemahasiswaan_profil WHERE user_id = $1`,
+      text: `
+        SELECT 1 
+        FROM admin_profil 
+        WHERE user_id = $1 AND deleted_at IS NULL
+        UNION 
+        SELECT 1 
+        FROM konselor_profil 
+        WHERE user_id = $1 AND deleted_at IS NULL
+        UNION 
+        SELECT 1 
+        FROM kemahasiswaan_profil 
+        WHERE user_id = $1 AND deleted_at IS NULL
+      `,
       values: [userId],
     };
-
+  
     const result = await this._pool.query(query);
     return result.rowCount > 0;
-  }
+  }  
 
   // Cek apakah no_telepon sudah terdaftar di profil lain
   async checkPhoneNumberExists(phoneNumber) {

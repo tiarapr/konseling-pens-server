@@ -12,12 +12,26 @@ class KemahasiswaanProfilService {
 
   // Cek apakah user_id sudah ada di profil lain (Admin/Konselor/Kemahasiswaan)
   async checkUserIdExists(userId) {
-    const result = await this._pool.query(
-      'SELECT 1 FROM admin_profil WHERE user_id = $1 UNION SELECT 1 FROM konselor_profil WHERE user_id = $1 UNION SELECT 1 FROM kemahasiswaan_profil WHERE user_id = $1',
-      [userId]
-    );
+    const query = {
+      text: `
+        SELECT 1 
+        FROM admin_profil 
+        WHERE user_id = $1 AND deleted_at IS NULL
+        UNION 
+        SELECT 1 
+        FROM konselor_profil 
+        WHERE user_id = $1 AND deleted_at IS NULL
+        UNION 
+        SELECT 1 
+        FROM kemahasiswaan_profil 
+        WHERE user_id = $1 AND deleted_at IS NULL
+      `,
+      values: [userId],
+    };
+  
+    const result = await this._pool.query(query);
     return result.rowCount > 0;
-  }
+  }  
 
   // Cek apakah nomor telepon sudah terdaftar di profil lain
   async checkPhoneNumberExists(phoneNumber) {
