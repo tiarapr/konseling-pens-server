@@ -121,9 +121,10 @@ class KemahasiswaanProfilHandler {
   async deleteKemahasiswaanProfilHandler(request, h) {
     try {
       const { id } = request.params;
-      const { deleted_by } = request.payload;
 
-      const profil = await this._service.softDelete(id, deleted_by);
+      const deletedBy = request.auth.credentials.jwt.user.id;
+
+      const profil = await this._service.softDelete(id, deletedBy);
 
       return {
         status: 'success',

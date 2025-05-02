@@ -170,9 +170,10 @@ class KonselorProfilHandler {
   async deleteKonselorProfilHandler(request, h) {
     try {
       const { id } = request.params;
-      const { deleted_by } = request.payload;
 
-      const konselor = await this._service.softDelete(id, deleted_by);
+      const deletedBy = request.auth.credentials.jwt.user.id;
+
+      const konselor = await this._service.softDelete(id, deletedBy);
 
       return {
         status: 'success',

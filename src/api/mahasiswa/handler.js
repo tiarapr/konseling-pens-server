@@ -173,9 +173,10 @@ class MahasiswaHandler {
     async deleteMahasiswaHandler(request, h) {
         try {
             const { id } = request.params;
-            const { deleted_by } = request.payload;
 
-            const result = await this._service.softDelete(id, deleted_by);
+            const deletedBy = request.auth.credentials.jwt.user.id;
+
+            const result = await this._service.softDelete(id, deletedBy);
 
             return {
                 status: 'success',
