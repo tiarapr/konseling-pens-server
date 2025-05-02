@@ -14,12 +14,12 @@ class RoleHandler {
     this._validator.validateRolePayload(request.payload);
 
     const { role_name } = request.payload;
-    const roleId = await this._roleService.addRole({ role_name });
+    const role = await this._roleService.addRole({ role_name });
 
     return h.response({
       status: "success",
       message: "Role successfully added",
-      data: { roleId },
+      data: { role },
     }).code(201);
   }
 

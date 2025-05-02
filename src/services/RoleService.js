@@ -15,7 +15,7 @@ class RoleService {
     const query = {
       text: `INSERT INTO role (name) 
              VALUES ($1) 
-             RETURNING id`,
+             RETURNING *`,
       values: [role_name],
     };
 
@@ -24,7 +24,7 @@ class RoleService {
     if (!result.rows.length) {
       throw new InvariantError("Failed to add role.");
     }
-    return result.rows[0].id;
+    return result.rows[0];
   }
 
   async getRole() {
