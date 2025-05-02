@@ -68,7 +68,7 @@ This is the backend for the **E-Konseling PENS** platform. It is built using **H
 5. **Run the Server**
     Start the server by running:
     ```bash
-    npm start
+    npm run dev
     ```
 
     The server will be accessible at `http://localhost:5000`.
