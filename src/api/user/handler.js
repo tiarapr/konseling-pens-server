@@ -9,6 +9,7 @@ class UserHandler {
     this.postUserHandler = this.postUserHandler.bind(this);
     this.getAllUserHandler = this.getAllUserHandler.bind(this);
     this.getUserByIdHandler = this.getUserByIdHandler.bind(this);
+    this.getCurrentUserHandler = this.getCurrentUserHandler.bind(this);
     this.verifyEmailHandler = this.verifyEmailHandler.bind(this);
     this.resendVerificationEmailHandler = this.resendVerificationEmailHandler.bind(this);
     this.updateUserEmailHandler = this.updateUserEmailHandler.bind(this);
@@ -27,7 +28,7 @@ class UserHandler {
         email,
         password,
         isVerified: false,
-        roleId,  
+        roleId,
       });
 
       // Generate verification token
@@ -95,6 +96,21 @@ class UserHandler {
     }
   }
 
+  async getCurrentUserHandler(request, h) {
+    try {
+      const { id } = request.auth.credentials.jwt.user;
+
+      const user = await this._service.getCurrentUserById(id);
+
+      return {
+        status: "success",
+        data: { user },
+      };
+    } catch (error) {
+      return this._handleError(error, h, "Failed to retrieve user information");
+    }
+  }
+
   async getUserByIdHandler(request, h) {
     try {
       const { id } = request.params;
@@ -128,100 +144,100 @@ class UserHandler {
     try {
       const { id } = request.params;
       const { email } = request.payload;
-  
+
       this._validator.validateUpdateEmailPayload({ email });
-  
+
       // Pastikan email baru tidak digunakan user lain
       await this._service.verifyNewEmail(email);
-  
+
       // Update email user
       await this._service.updateUserEmail(id, email);
-  
+
       // Generate token verifikasi baru
       const verificationToken = await this._service.generateVerificationToken(id);
       await this._mailSender.sendVerificationEmail(email, verificationToken);
-  
+
       return h.response({
         status: 'success',
         message: 'Email updated successfully. Please verify your new email.',
       }).code(200);
-      
+
     } catch (error) {
       return this._handleError(error, h, 'Failed to update email');
     }
   }
-  
+
   async updateUserPasswordHandler(request, h) {
     try {
       const { id } = request.params;
       const { oldPassword, newPassword } = request.payload;
-  
+
       this._validator.validateUpdatePasswordPayload({ oldPassword, newPassword });
-  
+
       // Verifikasi password lama
       await this._service.verifyUserPassword(id, oldPassword);
-  
+
       // Update ke password baru
       await this._service.updateUserPassword(id, newPassword);
-  
+
       return h.response({
         status: 'success',
         message: 'Password updated successfully.',
       }).code(200);
-  
+
     } catch (error) {
       return this._handleError(error, h, 'Failed to update password');
     }
-  }  
+  }
 
   async forgotPasswordHandler(request, h) {
     try {
       const { email } = request.payload;
-  
+
       // Cari user berdasarkan email
       const user = await this._service.getUserByEmail(email);
       if (!user) {
         throw new ClientError('User with the provided email does not exist');
       }
-  
+
       // Generate token reset password
       const resetToken = await this._service.generateResetPasswordToken(user.id);
-  
+
       // Kirim email reset password
       await this._mailSender.sendResetPasswordEmail(user.email, resetToken);
-  
+
       return h.response({
         status: 'success',
         message: 'Reset password instructions have been sent to your email.',
       }).code(200);
-  
+
     } catch (error) {
       return this._handleError(error, h, 'Failed to process password reset request');
     }
   }
-  
+
   async resetPasswordHandler(request, h) {
     try {
       const { token } = request.query;
       const { password } = request.payload;
-  
-      this._validator.validateUpdateUserPayload({ password });
-  
+
+      this._validator.validateResetPasswordPayload({ password });
+
       // Verifikasi token dan ambil user id
       const userId = await this._service.verifyResetPasswordToken(token);
-  
+
       // Update password user
       await this._service.updateResetPassword(userId, password);
-  
+
       return h.response({
         status: 'success',
         message: 'Password has been reset successfully.',
       }).code(200);
-  
+
     } catch (error) {
       return this._handleError(error, h, 'Failed to reset password');
     }
-  }  
+  }
 
   _handleError(error, h, defaultMessage) {
     if (error instanceof ClientError) {

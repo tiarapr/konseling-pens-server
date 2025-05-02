@@ -50,17 +50,21 @@ class KonselingHandler {
     async postKonselingHandler(request, h) {
         try {
             this._validator.validateCreatePayload(request.payload);
-            const { janji_temu_id, tanggal_konseling, jam_mulai, jam_selesai, status_kehadiran, tanggal_konfirmasi, status_id, created_by } = request.payload;
+            const { janji_temu_id, konselor_profil_id, tanggal_konseling, jam_mulai, jam_selesai, lokasi, status_kehadiran, tanggal_konfirmasi, status_id } = request.payload;
+
+            const createdBy = request.auth.credentials.jwt.user.id;
 
             const result = await this._service.create({
                 janji_temu_id,
+                konselor_profil_id,
                 tanggal_konseling,
                 jam_mulai,
                 jam_selesai,
+                lokasi,
                 status_kehadiran,
                 tanggal_konfirmasi,
                 status_id,
-                created_by,
+                created_by: createdBy,
             });
 
             const response = h.response({
@@ -82,16 +86,20 @@ class KonselingHandler {
         try {
             const { id } = request.params;
             this._validator.validateUpdatePayload(request.payload);
-            const { tanggal_konseling, jam_mulai, jam_selesai, status_kehadiran, tanggal_konfirmasi, status_id, updated_by } = request.payload;
+            const { tanggal_konseling, jam_mulai, jam_selesai, lokasi, status_kehadiran, tanggal_konfirmasi, status_id, konselor_profil_id } = request.payload;
+
+            const updatedBy = request.auth.credentials.jwt.user.id;
 
             const updatedKonseling = await this._service.update(id, {
                 tanggal_konseling,
                 jam_mulai,
                 jam_selesai,
+                lokasi,
                 status_kehadiran,
                 tanggal_konfirmasi,
                 status_id,
-                updated_by,
+                konselor_profil_id,
+                updated_by: updatedBy,
             });
 
             return {
@@ -111,9 +119,9 @@ class KonselingHandler {
         try {
             const { id } = request.params;
             this._validator.validateUpdateStatusPayload(request.payload);
-            const { status_id, updated_by } = request.payload;
-
-            const updatedKonseling = await this._service.updateStatus(id, { status_id, updated_by });
+            const { status_id } = request.payload;
+            const updatedBy = request.auth.credentials.jwt.user.id;
+            const updatedKonseling = await this._service.updateStatus(id, { status_id, updated_by: updatedBy });
 
             return {
                 status: 'success',
@@ -131,9 +139,11 @@ class KonselingHandler {
     async konfirmasiKehadiranHandler(request, h) {
         try {
             const { id } = request.params;
-            const { status_kehadiran, tanggal_konfirmasi, status_id, updated_by } = request.payload;
+            const { status_kehadiran, status_id } = request.payload;
 
-            const updatedKonseling = await this._service.konfirmasiKehadiran(id, { status_kehadiran, tanggal_konfirmasi, status_id, updated_by });
+            const updatedBy = request.auth.credentials.jwt.user.id;
+
+            const updatedKonseling = await this._service.konfirmasiKehadiran(id, { status_kehadiran, status_id, updated_by: updatedBy });
 
             return {
                 status: 'success',
@@ -151,9 +161,10 @@ class KonselingHandler {
     async deleteKonselingHandler(request, h) {
         try {
             const { id } = request.params;
-            const { deleted_by } = request.payload;
+            
+            const deletedBy = request.auth.credentials.jwt.user.id;
 
-            const result = await this._service.softDelete(id, deleted_by);
+            const result = await this._service.softDelete(id, deletedBy);
 
             return {
                 status: 'success',

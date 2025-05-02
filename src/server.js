@@ -131,11 +131,11 @@ const init = async () => {
     },
     {
       plugin: adminProfil,
-      options: { service: adminProfilService, validator: AdminProfilValidator },
+      options: { service: adminProfilService, userService: userService, mailSender: mailService, validator: AdminProfilValidator },
     },
     {
       plugin: konselorProfil,
-      options: { service: konselorProfilService, validator: KonselorProfilValidator },
+      options: { service: konselorProfilService, userService: userService, mailSender: mailService, validator: KonselorProfilValidator },
     },
     {
       plugin: kemahasiswaanProfil,
@@ -175,7 +175,7 @@ const init = async () => {
     },
     {
       plugin: catatanKonseling,
-      options: { service: catatanKonselingService, validator: CatatanKonselingValidator },
+      options: { service: catatanKonselingService, konselingTopikService: konselingTopikService, validator: CatatanKonselingValidator },
     }
   ]);
 

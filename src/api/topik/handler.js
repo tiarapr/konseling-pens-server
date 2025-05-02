@@ -1,8 +1,9 @@
 const ClientError = require('../../exceptions/ClientError');
 
 class TopikHandler {
-    constructor(service) {
+    constructor(service, validator) {
         this._service = service;
+        this._validator = validator;
 
         // Binding methods
         this.createTopikHandler = this.createTopikHandler.bind(this);
@@ -15,9 +16,10 @@ class TopikHandler {
     // Create a new topik
     async createTopikHandler(request, h) {
         try {
-            this._validator.validateCreatePayload(request.payload);
-            const { name, created_by } = request.payload;
-            const result = await this._service.create({ name, created_by });
+            this._validator.validateTopikPayload(request.payload);
+            const { name } = request.payload;
+            const createdBy = request.auth.credentials.jwt.user.id;
+            const result = await this._service.create({ name, created_by: createdBy });
 
             return {
                 status: 'success',
@@ -68,10 +70,12 @@ class TopikHandler {
     async updateTopikHandler(request, h) {
         try {
             const { id } = request.params;
-            this._validator.validateUpdatePayload(request.payload);
-            const { name, updated_by } = request.payload;
+            this._validator.validateTopikPayload(request.payload);
+            const { name } = request.payload;
 
-            const updatedTopik = await this._service.update(id, { name, updated_by });
+            const updatedBy = request.auth.credentials.jwt.user.id;
+
+            const updatedTopik = await this._service.update(id, { name, updated_by: updatedBy });
 
             return {
                 status: 'success',
@@ -89,9 +93,10 @@ class TopikHandler {
     async deleteTopikHandler(request, h) {
         try {
             const { id } = request.params;
-            const { deleted_by } = request.payload;
 
-            const deletedTopik = await this._service.softDelete(id, deleted_by);
+            const deletedBy = request.auth.credentials.jwt.user.id;
+
+            const deletedTopik = await this._service.softDelete(id, deletedBy);
 
             return {
                 status: 'success',

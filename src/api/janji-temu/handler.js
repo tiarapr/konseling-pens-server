@@ -1,23 +1,42 @@
 const ClientError = require('../../exceptions/ClientError');
 
 class JanjiTemuHandler {
-    constructor(service) {
+    constructor(service, validator) {
         this._service = service;
+        this._validator = validator;
 
         // Bind methods to this
+        this.getAllJanjiTemuHandler = this.getAllJanjiTemuHandler.bind(this);
         this.createJanjiTemuHandler = this.createJanjiTemuHandler.bind(this);
         this.updateStatusJanjiTemuHandler = this.updateStatusJanjiTemuHandler.bind(this);
         this.deleteJanjiTemuHandler = this.deleteJanjiTemuHandler.bind(this);
+    }
+
+    // Get all janji temu records
+    async getAllJanjiTemuHandler(request, h) {
+        try {
+            const data = await this._service.getAll();
+            return {
+                status: 'success',
+                data: {
+                    janjiTemu: data,
+                },
+            };
+        } catch (error) {
+            return this._handleServerError(h, error);
+        }
     }
 
     // Create new janji temu
     async createJanjiTemuHandler(request, h) {
         try {
             this._validator.validateCreatePayload(request.payload);
-            const { nrp, status_id, tipe_konsultasi, jadwal_utama_tanggal, jadwal_utama_jam_mulai, jadwal_utama_jam_selesai, jadwal_alternatif_tanggal, jadwal_alternatif_jam_mulai, jadwal_alternatif_jam_selesai, tanggal_pengajuan, created_by } = request.payload;
+            const { nrp, status_id, tipe_konsultasi, jadwal_utama_tanggal, jadwal_utama_jam_mulai, jadwal_utama_jam_selesai, jadwal_alternatif_tanggal, jadwal_alternatif_jam_mulai, jadwal_alternatif_jam_selesai } = request.payload;
+
+            const createdBy = request.auth.credentials.jwt.user.id; 
 
             const result = await this._service.create({
-                nrp, status_id, tipe_konsultasi, jadwal_utama_tanggal, jadwal_utama_jam_mulai, jadwal_utama_jam_selesai, jadwal_alternatif_tanggal, jadwal_alternatif_jam_mulai, jadwal_alternatif_jam_selesai, tanggal_pengajuan, created_by
+                nrp, status_id, tipe_konsultasi, jadwal_utama_tanggal, jadwal_utama_jam_mulai, jadwal_utama_jam_selesai, jadwal_alternatif_tanggal, jadwal_alternatif_jam_mulai, jadwal_alternatif_jam_selesai, created_by: createdBy,
             });
 
             const response = h.response({
@@ -37,9 +56,11 @@ class JanjiTemuHandler {
         try {
             const { id } = request.params;
             this._validator.validateUpdatePayload(request.payload);
-            const { status_id, updated_by } = request.payload;
+            const { status_id } = request.payload;
 
-            const updatedJanjiTemu = await this._service.updateStatus(id, { status_id, updated_by });
+            const updatedBy = request.auth.credentials.jwt.user.id;
+
+            const updatedJanjiTemu = await this._service.updateStatus(id, { status_id, updated_by: updatedBy });
 
             return {
                 status: 'success',
@@ -55,9 +76,9 @@ class JanjiTemuHandler {
     async deleteJanjiTemuHandler(request, h) {
         try {
             const { id } = request.params;
-            const { deleted_by } = request.payload;
-
-            const result = await this._service.softDelete(id, deleted_by);
+            const deletedBy = request.auth.credentials.jwt.user.id;
+            
+            const result = await this._service.softDelete(id, deletedBy);
 
             return {
                 status: 'success',

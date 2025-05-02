@@ -17,6 +17,14 @@ const routes = (handler) => [
     },
     {
         method: 'GET',
+        path: '/catatan-konseling/konseling/{konseling_id}',
+        handler: handler.getByKonselingIdHandler,
+        options: {
+            auth: 'basicAndJwtStrategy',
+        },
+    },
+    {
+        method: 'GET',
         path: '/catatan-konseling/{id}',
         handler: handler.getCatatanKonselingByIdHandler,
         options: {

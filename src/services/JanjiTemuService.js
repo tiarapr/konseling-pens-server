@@ -16,6 +16,40 @@ class JanjiTemuService {
         });
     }
 
+    async getAll() {
+        const query = {
+            text: `
+                SELECT 
+                    jt.id,
+                    jt.nomor_tiket,
+                    m.nama_lengkap AS nama_mahasiswa,
+                    jt.nrp,
+                    s.name AS status,
+                    jt.tipe_konsultasi,
+                    jt.jadwal_utama_tanggal,
+                    jt.jadwal_utama_jam_mulai,
+                    jt.jadwal_utama_jam_selesai,
+                    jt.jadwal_alternatif_tanggal,
+                    jt.jadwal_alternatif_jam_mulai,
+                    jt.jadwal_alternatif_jam_selesai,
+                    jt.tanggal_pengajuan,
+                    jt.created_by,
+                    jt.updated_by,
+                    jt.updated_at,
+                    jt.deleted_by,
+                    jt.deleted_at
+                FROM janji_temu jt
+                JOIN mahasiswa m ON jt.nrp = m.nrp
+                JOIN status s ON jt.status_id = s.id
+                WHERE jt.deleted_at IS NULL
+                ORDER BY jt.tanggal_pengajuan DESC
+            `,
+        };
+    
+        const result = await this._pool.query(query);
+        return result.rows;
+    }    
+
     async create(payload) {
         const {
             nrp,
@@ -27,21 +61,21 @@ class JanjiTemuService {
             jadwal_alternatif_tanggal,
             jadwal_alternatif_jam_mulai,
             jadwal_alternatif_jam_selesai,
-            tanggal_pengajuan,
             created_by,
         } = payload;
-
+    
         const nomor_tiket = generateUltraSafeTicketNumber();
-
+        const tanggalPengajuan = new Date(); // otomatis ambil waktu saat ini
+    
         const query = {
             text: `
                 INSERT INTO janji_temu (
-                    id, nomor_tiket, nrp, status_id, tipe_konsultasi,
+                    nomor_tiket, nrp, status_id, tipe_konsultasi,
                     jadwal_utama_tanggal, jadwal_utama_jam_mulai, jadwal_utama_jam_selesai,
                     jadwal_alternatif_tanggal, jadwal_alternatif_jam_mulai, jadwal_alternatif_jam_selesai,
                     tanggal_pengajuan, created_by
                 ) VALUES (
-                    gen_random_uuid(), $1, $2, $3, $4,
+                    $1, $2, $3, $4,
                     $5, $6, $7,
                     $8, $9, $10,
                     $11, $12
@@ -51,21 +85,21 @@ class JanjiTemuService {
                 nomor_tiket, nrp, status_id, tipe_konsultasi,
                 jadwal_utama_tanggal, jadwal_utama_jam_mulai, jadwal_utama_jam_selesai,
                 jadwal_alternatif_tanggal, jadwal_alternatif_jam_mulai, jadwal_alternatif_jam_selesai,
-                tanggal_pengajuan, created_by,
+                tanggalPengajuan, created_by,
             ],
         };
-
+    
         const result = await this._pool.query(query);
-
+    
         if (!result.rows.length) {
             throw new InvariantError("Gagal menambahkan janji temu");
         }
-
+    
         return {
             id: result.rows[0].id,
             nomor_tiket,
         };
-    }
+    }    
 
     async updateStatus(id, payload) {
         const { status_id, updated_by } = payload;

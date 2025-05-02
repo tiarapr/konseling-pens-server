@@ -10,7 +10,7 @@ const CreateCatatanKonselingPayloadSchema = Joi.object({
     intervensi: Joi.string().optional().allow(null),
     tindak_lanjut: Joi.string().optional().allow(null),
     konseling_lanjutan: Joi.boolean().required(),
-    created_by: Joi.string().guid({ version: 'uuidv4' }).required(),
+    topik_ids: Joi.array().items(Joi.string()).required()
 });
 
 const UpdateCatatanKonselingPayloadSchema = Joi.object({
@@ -23,7 +23,7 @@ const UpdateCatatanKonselingPayloadSchema = Joi.object({
     intervensi: Joi.string().optional().allow(null),
     tindak_lanjut: Joi.string().optional().allow(null),
     konseling_lanjutan: Joi.boolean().optional(),
-    updated_by: Joi.string().guid({ version: 'uuidv4' }).required(),
+    topik_ids: Joi.array().items(Joi.string()).optional()
 });
 
 module.exports = {

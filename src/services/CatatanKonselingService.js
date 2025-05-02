@@ -58,38 +58,95 @@ class CatatanKonselingService {
     return result.rows[0].id;
   }
 
-  // Mengambil semua catatan konseling berdasarkan konseling_id
-  async getAllByKonselingId(konseling_id) {
+  // Mengambil semua catatan konseling yang belum dihapus
+  async getAll() {
     const query = {
       text: `
-        SELECT * FROM catatan_konseling
-        WHERE konseling_id = $1 AND deleted_at IS NULL
-      `,
-      values: [konseling_id],
+          SELECT * FROM catatan_konseling
+          WHERE deleted_at IS NULL
+          ORDER BY created_at DESC
+        `,
     };
 
     const result = await this._pool.query(query);
     return result.rows;
   }
 
+  // Mengambil semua catatan konseling berdasarkan konseling_id
+  async getByKonselingId(konseling_id) {
+    // Ambil semua catatan konseling
+    const catatanQuery = {
+      text: `
+        SELECT * FROM catatan_konseling
+        WHERE konseling_id = $1 AND deleted_at IS NULL
+        ORDER BY created_at DESC
+      `,
+      values: [konseling_id],
+    };
+  
+    const catatanResult = await this._pool.query(catatanQuery);
+    const catatanList = catatanResult.rows;
+  
+    // Untuk setiap catatan, ambil topik dari konseling terkait
+    const detailedCatatan = await Promise.all(catatanList.map(async (catatan) => {
+      const topikQuery = {
+        text: `
+          SELECT t.id, t.name
+          FROM konseling_topik kt
+          JOIN topik t ON kt.topik_id = t.id
+          WHERE kt.konseling_id = $1 AND kt.deleted_at IS NULL
+        `,
+        values: [catatan.konseling_id],
+      };
+  
+      const topikResult = await this._pool.query(topikQuery);
+      return {
+        ...catatan,
+        topik: topikResult.rows, // list of topik
+      };
+    }));
+  
+    return detailedCatatan;
+  }  
+
   // Mengambil catatan konseling berdasarkan ID
   async getById(id) {
-    const query = {
+    // Ambil catatan konseling terlebih dahulu
+    const catatanQuery = {
       text: `
         SELECT * FROM catatan_konseling
         WHERE id = $1 AND deleted_at IS NULL
       `,
       values: [id],
     };
-
-    const result = await this._pool.query(query);
-
-    if (!result.rows.length) {
+  
+    const catatanResult = await this._pool.query(catatanQuery);
+  
+    if (!catatanResult.rows.length) {
       throw new NotFoundError('Catatan konseling tidak ditemukan');
     }
-
-    return result.rows[0];
-  }
+  
+    const catatan = catatanResult.rows[0];
+  
+    // Ambil topik berdasarkan konseling_id
+    const topikQuery = {
+      text: `
+        SELECT t.id, t.name
+        FROM konseling_topik kt
+        JOIN topik t ON kt.topik_id = t.id
+        WHERE kt.konseling_id = $1 AND kt.deleted_at IS NULL
+      `,
+      values: [catatan.konseling_id],
+    };
+  
+    const topikResult = await this._pool.query(topikQuery);
+  
+    // Gabungkan catatan dan topik
+    return {
+      ...catatan,
+      topik: topikResult.rows,
+    };
+  }  
 
   // Memperbarui catatan konseling berdasarkan ID
   async update(id, payload) {

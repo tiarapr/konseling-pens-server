@@ -48,9 +48,11 @@ class StatusHandler {
     async postStatusHandler(request, h) {
         try {
             this._validator.validateCreatePayload(request.payload);
-            const { name, tipe_status_id, created_by } = request.payload;
+            const { name, tipe_status_id } = request.payload;
 
-            const result = await this._service.create({ name, tipe_status_id, created_by });
+            const createdBy = request.auth.credentials.jwt.user.id;
+
+            const result = await this._service.create({ name, tipe_status_id, created_by: createdBy });
 
             const response = h.response({
                 status: 'success',
@@ -71,9 +73,11 @@ class StatusHandler {
         try {
             const { id } = request.params;
             this._validator.validateUpdatePayload(request.payload);
-            const { name, tipe_status_id, updated_by } = request.payload;
+            const { name, tipe_status_id } = request.payload;
 
-            const result = await this._service.update(id, { name, tipe_status_id, updated_by });
+            const updatedBy = request.auth.credentials.jwt.user.id;
+
+            const result = await this._service.update(id, { name, tipe_status_id, updated_by: updatedBy });
 
             return {
                 status: 'success',
@@ -91,9 +95,10 @@ class StatusHandler {
     async deleteStatusHandler(request, h) {
         try {
             const { id } = request.params;
-            const { deleted_by } = request.payload;
+            
+            const deletedBy = request.auth.credentials.jwt.user.id;
 
-            const result = await this._service.softDelete(id, deleted_by);
+            const result = await this._service.softDelete(id, deletedBy);
 
             return {
                 status: 'success',

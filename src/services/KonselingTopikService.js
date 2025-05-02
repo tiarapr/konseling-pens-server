@@ -4,10 +4,11 @@ const NotFoundError = require("../exceptions/NotFoundError");
 
 class KonselingTopikService {
   constructor() {
-    this._pool = new Pool();
+    this._pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+    });
   }
 
-  // Fungsi untuk menambahkan hubungan konseling dengan topik
   async create(payload) {
     const { konseling_id, topik_id, created_by } = payload;
 

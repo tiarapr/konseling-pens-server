@@ -1,5 +1,13 @@
 const routes = (handler) => [
     {
+      method: 'POST',
+      path: '/konselor',
+      handler: handler.createKonselorAccountHandler,
+      options: {
+        auth: 'basicAndJwtStrategy',
+      },
+    },
+    {
         method: "POST",
         path: "/konselor-profil",
         handler: handler.postKonselorProfilHandler,

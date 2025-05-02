@@ -10,7 +10,7 @@ const routes = (handler) => [
   {
     method: 'GET',
     path: '/user/me',
-    handler: handler.getUserByIdHandler,
+    handler: handler.getCurrentUserHandler,
     options: {
       auth: 'basicAndJwtStrategy',
     },

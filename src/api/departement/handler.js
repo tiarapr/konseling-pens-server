@@ -43,10 +43,12 @@ class DepartementHandler {
 
   async postDepartementHandler(request, h) {
     try {
-      this._validator.validateCreatePayload(request.payload);
-      const { name, created_by } = request.payload;
+      this._validator.validateDepartementPayload(request.payload);
+      const { name } = request.payload;
 
-      const result = await this._service.create({ name, created_by });
+      const createdBy = request.auth.credentials.jwt.user.id;
+
+      const result = await this._service.create({ name, created_by: createdBy });
 
       const response = h.response({
         status: 'success',
@@ -65,10 +67,12 @@ class DepartementHandler {
   async updateDepartementHandler(request, h) {
     try {
       const { id } = request.params;
-      this._validator.validateUpdatePayload(request.payload);
-      const { name, updated_by } = request.payload;
+      this._validator.validateDepartementPayload(request.payload);
+      const { name } = request.payload;
 
-      const result = await this._service.update(id, { name, updated_by });
+      const updatedBy = request.auth.credentials.jwt.user.id;
+
+      const result = await this._service.update(id, { name, updated_by: updatedBy });
 
       return {
         status: 'success',
@@ -85,9 +89,10 @@ class DepartementHandler {
   async deleteDepartementHandler(request, h) {
     try {
       const { id } = request.params;
-      const { deleted_by } = request.payload;
 
-      const result = await this._service.softDelete(id, deleted_by);
+      const deletedBy = request.auth.credentials.jwt.user.id;
+
+      const result = await this._service.softDelete(id, deletedBy);
 
       return {
         status: 'success',

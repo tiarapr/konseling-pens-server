@@ -8,6 +8,14 @@ const routes = (handler) => [
         },
     },
     {
+        method: 'GET',
+        path: '/janji-temu',
+        handler: handler.getAllJanjiTemuHandler,
+        options: {
+            auth: 'basicAndJwtStrategy',
+        },
+    },
+    {
         method: 'PUT',
         path: '/janji-temu/{id}/status',
         handler: handler.updateStatusJanjiTemuHandler,

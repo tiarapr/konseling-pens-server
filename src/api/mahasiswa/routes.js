@@ -16,11 +16,26 @@ const routes = (handler) => [
         },
     },
     {
+        method: 'GET',
+        path: '/mahasiswa/nrp/{nrp}',
+        handler: handler.getMahasiswaByNrpHandler,
+        options: {
+            auth: 'basicAndJwtStrategy',
+        },
+    },
+    {
         method: 'POST',
         path: '/mahasiswa',
         handler: handler.postMahasiswaHandler,
         options: {
-            auth: 'basicAndJwtStrategy',
+            auth: 'basic',
+            payload: {
+                allow: 'multipart/form-data',
+                multipart: true,
+                output: 'stream', // penting untuk file
+                parse: true,
+                maxBytes: 10 * 1024 * 1024, // max 10MB
+            },
         },
     },
     {
@@ -28,7 +43,13 @@ const routes = (handler) => [
         path: '/mahasiswa/{id}',
         handler: handler.updateMahasiswaHandler,
         options: {
-            auth: 'basicAndJwtStrategy',
+            payload: {
+                allow: 'multipart/form-data',
+                multipart: true,
+                output: 'stream',
+                parse: true,
+                maxBytes: 10 * 1024 * 1024, // max 10MB
+            },
         },
     },
     {
@@ -53,6 +74,14 @@ const routes = (handler) => [
             },
         },
     },
+    {
+        method: 'GET',
+        path: '/mahasiswa/{nrp}/rekammedis',
+        handler: handler.getRekamMedisByNrpHandler,
+        options: {
+            auth: 'basicAndJwtStrategy',
+        },
+    }
 ];
 
 module.exports = routes;

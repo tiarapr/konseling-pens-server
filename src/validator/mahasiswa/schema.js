@@ -8,10 +8,10 @@ const CreateMahasiswaPayloadSchema = Joi.object({
   tanggal_lahir: Joi.date().iso().required(),
   jenis_kelamin: Joi.string().valid('L', 'P').required(),
   no_telepon: Joi.string().pattern(/^\d{10,13}$/).required(),
-  ktm_url: Joi.string().uri().required(),
+  ktm_url: Joi.string().pattern(/^\/?storage\/ktm\/.+\.(jpg|jpeg|png)$/).required(),
   user_id: Joi.string().guid({ version: "uuidv4" }).required(),
   status_id: Joi.string().guid({ version: "uuidv4" }).required(),
-  created_by: Joi.string().guid({ version: "uuidv4" }).required(),
+  created_by: Joi.string().guid({ version: 'uuidv4' }).required(),
 });
 
 // Payload untuk mengubah mahasiswa
@@ -22,10 +22,10 @@ const UpdateMahasiswaPayloadSchema = Joi.object({
   tanggal_lahir: Joi.date().iso().optional(),
   jenis_kelamin: Joi.string().valid('L', 'P').optional(),
   no_telepon: Joi.string().pattern(/^\d{10,13}$/).optional(),
-  ktm_url: Joi.string().uri().optional(),
+  ktm_url: Joi.string().pattern(/^\/?storage\/ktm\/.+\.(jpg|jpeg|png)$/).optional(),
   user_id: Joi.string().guid({ version: "uuidv4" }).optional(),
   status_id: Joi.string().guid({ version: "uuidv4" }).optional(),
-  updated_by: Joi.string().guid({ version: "uuidv4" }).required(),
+  updated_by: Joi.string().guid({ version: 'uuidv4' }).required(),
 });
 
 module.exports = {

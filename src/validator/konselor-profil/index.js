@@ -1,11 +1,19 @@
 const InvariantError = require("../../exceptions/InvariantError");
 const {
+  CreateKonselorAccountPayloadSchema,
   CreateKonselorProfilPayloadSchema,
   UpdateKonselorProfilPayloadSchema,
 } = require("./schema");
 
 const KemahasiswaanProfilValidator = {
-  validateCreatePayload: (payload) => {
+  validateCreateAccountPayload: (payload) => {
+    const validationResult = CreateKonselorAccountPayloadSchema.validate(payload);
+    if (validationResult.error) {
+      throw new InvariantError(validationResult.error.message);
+    }
+  },
+
+  validateCreateProfilePayload: (payload) => {
     const validationResult = CreateKonselorProfilPayloadSchema.validate(payload);
     if (validationResult.error) {
       throw new InvariantError(validationResult.error.message);

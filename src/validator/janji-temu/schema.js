@@ -19,14 +19,10 @@ const CreateJanjiTemuPayloadSchema = Joi.object({
     .messages({ 'string.pattern.base': 'Format jam alternatif mulai harus HH:MM atau HH:MM:SS' }),
   jadwal_alternatif_jam_selesai: Joi.string().pattern(timeFormat).required()
     .messages({ 'string.pattern.base': 'Format jam alternatif selesai harus HH:MM atau HH:MM:SS' }),
-
-  tanggal_pengajuan: Joi.date().required(),
-  created_by: Joi.string().guid({ version: "uuidv4" }).required(),
 });
 
 const UpdateStatusJanjiTemuPayloadSchema = Joi.object({
   status_id: Joi.string().guid({ version: "uuidv4" }).required(),
-  updated_by: Joi.string().guid({ version: "uuidv4" }).required(),
 });
 
 module.exports = {

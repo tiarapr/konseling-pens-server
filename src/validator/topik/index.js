@@ -1,19 +1,11 @@
 const InvariantError = require("../../exceptions/InvariantError");
 const {
-  CreateTopikPayloadSchema,
-  UpdateTopikPayloadSchema,
+  TopikPayloadSchema,
 } = require("./schema");
 
 const TopikValidator = {
-  validateCreatePayload: (payload) => {
-    const validationResult = CreateTopikPayloadSchema.validate(payload);
-    if (validationResult.error) {
-      throw new InvariantError(validationResult.error.message);
-    }
-  },
-
-  validateUpdatePayload: (payload) => {
-    const validationResult = UpdateTopikPayloadSchema.validate(payload);
+  validateTopikPayload: (payload) => {
+    const validationResult = TopikPayloadSchema.validate(payload);
     if (validationResult.error) {
       throw new InvariantError(validationResult.error.message);
     }

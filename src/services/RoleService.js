@@ -68,7 +68,7 @@ class RoleService {
 
   async deleteRole(roleId) {
     const query = {
-      text: "DELETE FROM role WHERE role_id = $1 RETURNING role_id",
+      text: "DELETE FROM role WHERE id = $1 RETURNING id",
       values: [roleId],
     };
 

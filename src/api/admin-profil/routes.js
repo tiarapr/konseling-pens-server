@@ -1,10 +1,18 @@
 const routes = (handler) => [
     {
       method: 'POST',
+      path: '/admin',
+      handler: handler.createAdminAccountHandler,
+      options: {
+        auth: 'basicAndJwtStrategy',
+      },
+    },
+    {
+      method: 'POST',
       path: '/admin-profil',
       handler: handler.postAdminProfilHandler,
       options: {
-        auth: 'basic',
+        auth: 'basicAndJwtStrategy',
       },
     },
     {

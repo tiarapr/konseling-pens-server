@@ -43,10 +43,12 @@ class PermissionHandler {
 
   async postPermissionHandler(request, h) {
     try {
-      this._validator.validateCreatePayload(request.payload);
-      const { name, created_by } = request.payload;
+      this._validator.validatePermissionPayload(request.payload);
+      const { name } = request.payload;
 
-      const result = await this._service.create({ name, created_by });
+      const createdBy = request.auth.credentials.jwt.user.id;
+
+      const result = await this._service.create({ name, created_by: createdBy });
 
       const response = h.response({
         status: 'success',
@@ -64,11 +66,13 @@ class PermissionHandler {
 
   async putPermissionHandler(request, h) {
     try {
-      this._validator.validateUpdatePayload(request.payload);
+      this._validator.validatePermissionPayload(request.payload);
       const { id } = request.params;
-      const { name, updated_by } = request.payload;
+      const { name } = request.payload;
 
-      const result = await this._service.update(id, { name, updated_by });
+      const updatedBy = request.auth.credentials.jwt.user.id;
+
+      const result = await this._service.update(id, { name, updated_by: updatedBy });
 
       return {
         status: 'success',
@@ -85,10 +89,10 @@ class PermissionHandler {
   async deletePermissionHandler(request, h) {
     try {
       const { id } = request.params;
-      const { deleted_by } = request.payload;
-
-      const result = await this._service.softDelete(id, deleted_by);
-
+      const deletedBy = request.auth.credentials.jwt.user.id;
+  
+      const result = await this._service.softDelete(id, deletedBy);  
+      
       return {
         status: 'success',
         message: 'Permission berhasil dihapus',
@@ -99,7 +103,7 @@ class PermissionHandler {
     } catch (error) {
       return this._handleError(h, error);
     }
-  }
+  }  
 
   _handleError(h, error) {
     if (error instanceof ClientError) {

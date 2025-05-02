@@ -60,13 +60,15 @@ class ProgramStudiHandler {
     async postProgramStudiHandler(request, h) {
         try {
             this._validator.validateCreatePayload(request.payload);
-            const { jenjang, nama_program_studi, departement_id, created_by } = request.payload;
+            const { jenjang, nama_program_studi, departement_id } = request.payload;
+
+            const createdBy = request.auth.credentials.jwt.user.id;
 
             const result = await this._service.create({
                 jenjang,
                 nama_program_studi,
                 departement_id,
-                created_by,
+                created_by: createdBy,
             });
 
             const response = h.response({
@@ -87,13 +89,15 @@ class ProgramStudiHandler {
         try {
             const { id } = request.params;
             this._validator.validateUpdatePayload(request.payload);
-            const { jenjang, nama_program_studi, departement_id, updated_by } = request.payload;
+            const { jenjang, nama_program_studi, departement_id } = request.payload;
+
+            const updatedBy = request.auth.credentials.jwt.user.id;
 
             const result = await this._service.update(id, {
                 jenjang,
                 nama_program_studi,
                 departement_id,
-                updated_by,
+                updated_by: updatedBy,
             });
 
             return {
@@ -111,9 +115,10 @@ class ProgramStudiHandler {
     async deleteProgramStudiHandler(request, h) {
         try {
             const { id } = request.params;
-            const { deleted_by } = request.payload;
 
-            const result = await this._service.softDelete(id, deleted_by);
+            const deletedBy = request.auth.credentials.jwt.user.id;
+
+            const result = await this._service.softDelete(id, deletedBy);
 
             return {
                 status: 'success',

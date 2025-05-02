@@ -18,4 +18,9 @@ const UpdatePasswordPayloadSchema = Joi.object({
   newPassword: Joi.string().min(6).required(),
 });
 
-module.exports = { UserPayloadSchema, UpdateEmailPayloadSchema, UpdatePasswordPayloadSchema };
+//reset password
+const ResetPasswordPayloadSchema = Joi.object({
+  password: Joi.string().min(6).required(),
+});
+
+module.exports = { UserPayloadSchema, UpdateEmailPayloadSchema, UpdatePasswordPayloadSchema, ResetPasswordPayloadSchema };

@@ -1,6 +1,7 @@
 const { Pool } = require("pg");
 const InvariantError = require("../exceptions/InvariantError");
 const NotFoundError = require("../exceptions/NotFoundError");
+const ClientError = require('../exceptions/ClientError');  // Jika diperlukan untuk menangani error klien
 
 class KemahasiswaanProfilService {
   constructor() {
@@ -9,7 +10,57 @@ class KemahasiswaanProfilService {
     });
   }
 
+  // Cek apakah user_id sudah ada di profil lain (Admin/Konselor/Kemahasiswaan)
+  async checkUserIdExists(userId) {
+    const result = await this._pool.query(
+      'SELECT 1 FROM admin_profil WHERE user_id = $1 UNION SELECT 1 FROM konselor_profil WHERE user_id = $1 UNION SELECT 1 FROM kemahasiswaan_profil WHERE user_id = $1',
+      [userId]
+    );
+    return result.rowCount > 0;
+  }
+
+  // Cek apakah nomor telepon sudah terdaftar di profil lain
+  async checkPhoneNumberExists(phoneNumber) {
+    const result = await this._pool.query(
+      'SELECT 1 FROM admin_profil WHERE no_telepon = $1 UNION SELECT 1 FROM konselor_profil WHERE no_telepon = $1 UNION SELECT 1 FROM kemahasiswaan_profil WHERE no_telepon = $1',
+      [phoneNumber]
+    );
+    return result.rowCount > 0;
+  }
+
+  // Validasi apakah nomor telepon unik
+  async validateUniquePhoneNumber(no_telepon) {
+    const query = {
+      text: `SELECT * FROM kemahasiswaan_profil WHERE no_telepon = $1 AND deleted_at IS NULL`,
+      values: [no_telepon],
+    };
+
+    const result = await this._pool.query(query);
+
+    if (result.rows.length > 0) {
+      throw new ClientError('Phone number already in use by another kemahasiswaan profile.', 400);
+    }
+  }
+
+  // Validasi apakah user sudah memiliki profil kemahasiswaan
+  async validateUniqueUserProfile(user_id) {
+    const query = {
+      text: `SELECT * FROM kemahasiswaan_profil WHERE user_id = $1 AND deleted_at IS NULL`,
+      values: [user_id],
+    };
+
+    const result = await this._pool.query(query);
+
+    if (result.rows.length > 0) {
+      throw new ClientError('Each user can only have one kemahasiswaan profile.', 400);
+    }
+  }
+
+  // Membuat profil kemahasiswaan baru
   async create({ nip, nama_lengkap, jabatan, no_telepon, user_id, created_by }) {
+    // Validasi nomor telepon unik
+    await this.validateUniquePhoneNumber(no_telepon);
+
     const query = {
       text: `
         INSERT INTO kemahasiswaan_profil (
@@ -31,6 +82,7 @@ class KemahasiswaanProfilService {
     return result.rows[0];
   }
 
+  // Mendapatkan semua profil kemahasiswaan
   async getAll() {
     const query = {
       text: `SELECT * FROM kemahasiswaan_profil WHERE deleted_at IS NULL`,
@@ -40,6 +92,7 @@ class KemahasiswaanProfilService {
     return result.rows;
   }
 
+  // Mendapatkan profil kemahasiswaan berdasarkan ID
   async getById(id) {
     const query = {
       text: `SELECT * FROM kemahasiswaan_profil WHERE id = $1 AND deleted_at IS NULL`,
@@ -55,6 +108,7 @@ class KemahasiswaanProfilService {
     return result.rows[0];
   }
 
+  // Mendapatkan profil kemahasiswaan berdasarkan user_id
   async getByUserId(user_id) {
     const query = {
       text: `SELECT * FROM kemahasiswaan_profil WHERE user_id = $1 AND deleted_at IS NULL`,
@@ -70,6 +124,7 @@ class KemahasiswaanProfilService {
     return result.rows[0];
   }
 
+  // Mengupdate profil kemahasiswaan berdasarkan ID
   async update(id, payload) {
     const { nip, nama_lengkap, jabatan, no_telepon, updated_by } = payload;
 
@@ -80,6 +135,11 @@ class KemahasiswaanProfilService {
     const updatedNamaLengkap = nama_lengkap ?? existing.nama_lengkap;
     const updatedJabatan = jabatan ?? existing.jabatan;
     const updatedNoTelepon = no_telepon ?? existing.no_telepon;
+
+    // Jika nomor telepon diubah, validasi nomor telepon yang baru
+    if (updatedNoTelepon !== existing.no_telepon) {
+      await this.validateUniquePhoneNumber(updatedNoTelepon);
+    }
 
     const query = {
       text: `
@@ -104,6 +164,7 @@ class KemahasiswaanProfilService {
     return result.rows[0];
   }
 
+  // Soft delete profil kemahasiswaan
   async softDelete(id, deleted_by) {
     const query = {
       text: `

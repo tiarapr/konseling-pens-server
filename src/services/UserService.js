@@ -15,6 +15,37 @@ class UserService {
     this._tokenExpirationHours = 24;
   }
 
+  async getAllUser() {
+    const query = {
+      text: `SELECT u.id, u.email, u.is_verified, u.created_at, r.name as role_name
+             FROM "user" u
+             JOIN role_user ru ON u.id = ru.user_id
+             JOIN role r ON ru.role_id = r.id`,
+    };
+
+    const result = await this._pool.query(query);
+    return result.rows;
+  }
+
+  async getUserById(userId) {
+    const query = {
+      text: `SELECT u.id, u.email, u.is_verified, u.created_at, u.updated_at, r.name as role_name
+             FROM "user" u
+             JOIN role_user ru ON u.id = ru.user_id
+             JOIN role r ON ru.role_id = r.id
+             WHERE u.id = $1`,
+      values: [userId],
+    };
+
+    const result = await this._pool.query(query);
+
+    if (!result.rows.length) {
+      throw new NotFoundError("User not found.");
+    }
+
+    return result.rows[0];
+  }
+
   async addUser({ email, password, isVerified = false, roleId }) {
     await this.verifyNewEmail(email);
 
@@ -109,6 +140,25 @@ class UserService {
     return user_id;
   }
 
+  async getCurrentUserById(userId) {
+    const query = {
+      text: `SELECT u.id, u.email, u.is_verified, u.created_at, u.updated_at, r.name as role_name
+           FROM "user" u
+           JOIN role_user ru ON u.id = ru.user_id
+           JOIN role r ON ru.role_id = r.id
+           WHERE u.id = $1`,
+      values: [userId],
+    };
+
+    const result = await this._pool.query(query);
+
+    if (!result.rows.length) {
+      throw new NotFoundError("User not found.");
+    }
+
+    return result.rows[0];
+  }
+  
   async getUserByEmail(email) {
     const query = {
       text: `SELECT id, email, is_verified, created_at 
@@ -308,37 +358,6 @@ class UserService {
     if (!updateResult.rows.length) {
       throw new ClientError('User not found');
     }
-  }
-
-  async getAllUser() {
-    const query = {
-      text: `SELECT u.id, u.email, u.is_verified, u.created_at, r.name as role_name
-             FROM "user" u
-             JOIN role_user ru ON u.id = ru.user_id
-             JOIN role r ON ru.role_id = r.id`,
-    };
-
-    const result = await this._pool.query(query);
-    return result.rows;
-  }
-
-  async getUserById(userId) {
-    const query = {
-      text: `SELECT u.id, u.email, u.is_verified, u.created_at, u.updated_at, r.name as role_name
-             FROM "user" u
-             JOIN role_user ru ON u.id = ru.user_id
-             JOIN role r ON ru.role_id = r.id
-             WHERE u.id = $1`,
-      values: [userId],
-    };
-
-    const result = await this._pool.query(query);
-
-    if (!result.rows.length) {
-      throw new NotFoundError("User not found.");
-    }
-
-    return result.rows[0];
   }
 
   async verifyUserCredential(email, password) {

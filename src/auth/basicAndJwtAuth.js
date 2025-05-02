@@ -1,3 +1,4 @@
+require('dotenv/config');
 const Boom = require('@hapi/boom');
 const Jwt = require('@hapi/jwt');
 const config = require('../config/config');
@@ -23,8 +24,9 @@ module.exports = () => {
           throw Boom.unauthorized('Invalid Basic authentication credentials');
         }
 
-        // Check JWT in Authorization-Two header
-        const authorizationTwo = request.headers['authorization-two'];
+        // Check JWT in Authorization header 
+        const authHeaderKey = config.AUTH_HEADER_KEY;
+        const authorizationTwo = request.headers[authHeaderKey];
         if (!authorizationTwo || !authorizationTwo.startsWith('Bearer ')) {
           throw Boom.unauthorized('Missing or invalid JWT authentication');
         }
@@ -32,7 +34,7 @@ module.exports = () => {
         // Validate JWT token
         const token = authorizationTwo.split(' ')[1];
         const artifacts = Jwt.token.decode(token);
-        await Jwt.token.verify(artifacts, config.ACCESS_TOKEN_KEY);
+        await Jwt.token.verify(artifacts, process.env.ACCESS_TOKEN_KEY);  
         
         return h.authenticated({
           credentials: {
