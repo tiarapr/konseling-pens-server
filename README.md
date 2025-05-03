@@ -63,7 +63,10 @@ This is the backend for the **E-Konseling PENS** platform. It is built using **H
 4. **Database Setup**
     - Ensure that PostgreSQL is installed and running.
     - Create a new database in PostgreSQL and update the `DATABASE_URL` in your `.env` file.
-    - Run your migrations or seed data if necessary (this would depend on your specific database schema).
+    - Run your migrations
+      ```bash
+      npx node-pg-migrate up
+      ```
 
 5. **Run the Server**
     Start the server by running:
@@ -92,4 +95,4 @@ The full API documentation is available through Postman:
 
 ## Configuration
 
-You can modify the server’s configuration (e.g., port, host, mail service) by editing the `.env` file. Additionally, JWT and basic authentication strategies can be modified in `auth/basicAndJwtAuth` and `auth/jwtStrategy`.
+You can modify the server’s configuration (e.g., port, host, mail service) by editing the `.env` file. 
