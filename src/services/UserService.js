@@ -49,7 +49,6 @@ class UserService {
   async addUser({ email, password, isVerified = false, roleId }) {
     await this.verifyNewEmail(email);
 
-    // const userId = `user-${nanoid(16)}`;
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const query = {
