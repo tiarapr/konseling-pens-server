@@ -1,3 +1,5 @@
+const ClientError = require('./../../exceptions/ClientError');
+
 class RoleHandler {
   constructor(roleService, validator) {
     this._roleService = roleService;
@@ -11,61 +13,95 @@ class RoleHandler {
   }
 
   async addRoleHandler(request, h) {
-    this._validator.validateRolePayload(request.payload);
+    try {
+      this._validator.validateRolePayload(request.payload);
 
-    const { role_name } = request.payload;
-    const role = await this._roleService.addRole({ role_name });
+      const { role_name } = request.payload;
+      const role = await this._roleService.addRole({ role_name });
 
-    return h.response({
-      status: "success",
-      message: "Role successfully added",
-      data: { role },
-    }).code(201);
+      return h.response({
+        status: 'success',
+        message: 'Role successfully added',
+        data: { role },
+      }).code(201);
+    } catch (error) {
+      return this._handleError(error, h);
+    }
   }
 
   async getRoleHandler(request, h) {
-    const role = await this._roleService.getRole();
-    return {
-      status: "success",
-      data: { role },
-    };
+    try {
+      const role = await this._roleService.getRole();
+      return {
+        status: 'success',
+        data: { role },
+      };
+    } catch (error) {
+      return this._handleError(error, h);
+    }
   }
 
   async getRoleByIdHandler(request, h) {
-    const { id } = request.params;
-    const role = await this._roleService.getRoleById(id);
+    try {
+      const { id } = request.params;
+      const role = await this._roleService.getRoleById(id);
 
-    return {
-      status: "success",
-      data: { role },
-    };
+      return {
+        status: 'success',
+        data: { role },
+      };
+    } catch (error) {
+      return this._handleError(error, h);
+    }
   }
 
   async updateRoleHandler(request, h) {
-    // Validate the payload (e.g., check that `role_name` is provided)
-    this._validator.validateRolePayload(request.payload);
+    try {
+      this._validator.validateRolePayload(request.payload);
 
-    const { id } = request.params;
-    const { role_name } = request.payload;
+      const { id } = request.params;
+      const { role_name } = request.payload;
 
-    // Call the RoleService to update the role
-    const updatedRole = await this._roleService.updateRole(id, { role_name });
+      const updatedRole = await this._roleService.updateRole(id, { role_name });
 
-    return h.response({
-      status: "success",
-      message: "Role successfully updated",
-      data: { role: updatedRole },
-    }).code(200);
+      return h.response({
+        status: 'success',
+        message: 'Role successfully updated',
+        data: { role: updatedRole },
+      }).code(200);
+    } catch (error) {
+      return this._handleError(error, h);
+    }
   }
 
   async deleteRoleHandler(request, h) {
-    const { id } = request.params;
-    await this._roleService.deleteRole(id);
+    try {
+      const { id } = request.params;
+      await this._roleService.deleteRole(id);
 
-    return {
-      status: "success",
-      message: "Role successfully deleted",
-    };
+      return {
+        status: 'success',
+        message: 'Role successfully deleted',
+      };
+    } catch (error) {
+      return this._handleError(error, h);
+    }
+  }
+
+  _handleError(error, h) {
+    if (error instanceof ClientError) {
+      return h.response({
+        status: 'fail',
+        message: error.message,
+      }).code(error.statusCode);
+    }
+
+    console.error(error);
+
+    return h.response({
+      status: 'error',
+      message: 'Maaf, terjadi kegagalan pada server kami.',
+    }).code(500);
   }
 }
 
