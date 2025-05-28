@@ -45,7 +45,6 @@ const StatusVerifikasiService = require('./services/StatusVerifikasiService');
 const MahasiswaService = require('./services/MahasiswaService');
 const JanjiTemuService = require('./services/JanjiTemuService');
 const KonselingService = require('./services/KonselingService');
-const KonselingTopikService = require('./services/KonselingTopikService');
 const CatatanKonselingService = require('./services/CatatanKonselingService');
 const FileStorageService = require('./services/FileStorageService');
 
@@ -88,7 +87,6 @@ const init = async () => {
   const mahasiswaService = new MahasiswaService();
   const janjiTemuService = new JanjiTemuService();
   const konselingService = new KonselingService();
-  const konselingTopikService = new KonselingTopikService();
   const catatanKonselingService = new CatatanKonselingService();
   const fileStorageService = new FileStorageService();
 
@@ -172,7 +170,7 @@ const init = async () => {
     },
     {
       plugin: catatanKonseling,
-      options: { service: catatanKonselingService, konselingTopikService: konselingTopikService, validator: CatatanKonselingValidator },
+      options: { service: catatanKonselingService, validator: CatatanKonselingValidator },
     }
   ]);
 
