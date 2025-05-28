@@ -67,7 +67,8 @@ class AuthenticationHandler {
     try {
       this._validator.validateVerifyOTPPayload(request.payload);
 
-      const { email, otp } = request.payload;
+      const { email } = request.query;
+      const { otp } = request.payload;
       const ipAddress = request.headers['x-forwarded-for'] || request.info.remoteAddress;
       const userAgent = request.headers['user-agent'];
 
