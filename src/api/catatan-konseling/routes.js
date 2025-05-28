@@ -8,8 +8,8 @@ const routes = (handler) => [
         options: {
             auth: 'basicAndJwtStrategy',
             pre: [
-                { method: checkPermission('manage_catatan_konselings') }
-            ]
+                { method: checkPermission('manage_catatan_konselings') },
+            ],
         },
     },
     {
@@ -19,8 +19,8 @@ const routes = (handler) => [
         options: {
             auth: 'basicAndJwtStrategy',
             pre: [
-                { method: checkPermission('view_all_catatan_konseling', 'manage_catatan_konselings') }
-            ]
+                { method: checkPermission('manage_catatan_konselings') },
+            ],
         },
     },
     {
@@ -30,8 +30,19 @@ const routes = (handler) => [
         options: {
             auth: 'basicAndJwtStrategy',
             pre: [
-                { method: checkPermission('view_catatan_konseling_by_konseling_id', 'manage_catatan_konselings') }
-            ]
+                { method: checkPermission('manage_catatan_konselings') },
+            ],
+        },
+    },
+    {
+        method: 'GET',
+        path: '/catatan-konseling/own/konseling/{konseling_id}',
+        handler: handler.getOwnCatatanKonselingByKonselingIdHandler,
+        options: {
+            auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('view_own_catatan_konseling') },
+            ],
         },
     },
     {
@@ -41,8 +52,8 @@ const routes = (handler) => [
         options: {
             auth: 'basicAndJwtStrategy',
             pre: [
-                { method: checkPermission('view_catatan_konseling_by_id', 'manage_catatan_konselings') }
-            ]
+                { method: checkPermission('manage_catatan_konselings') },
+            ],
         },
     },
     {
@@ -51,10 +62,9 @@ const routes = (handler) => [
         handler: handler.updateCatatanKonselingHandler,
         options: {
             auth: 'basicAndJwtStrategy',
-            auth: 'basicAndJwtStrategy',
             pre: [
-                { method: checkPermission('update_catatan_konseling', 'manage_catatan_konselings') }
-            ]
+                { method: checkPermission('manage_catatan_konselings') },
+            ],
         },
     },
     {
@@ -63,10 +73,9 @@ const routes = (handler) => [
         handler: handler.deleteCatatanKonselingHandler,
         options: {
             auth: 'basicAndJwtStrategy',
-            auth: 'basicAndJwtStrategy',
             pre: [
-                { method: checkPermission('delete_catatan_konseling', 'manage_catatan_konselings') }
-            ]
+                { method: checkPermission('manage_catatan_konselings') },
+            ],
         },
     },
 ];
