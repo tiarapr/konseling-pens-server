@@ -11,6 +11,7 @@ class JanjiTemuHandler {
 
         this.getAllJanjiTemuHandler = this.getAllJanjiTemuHandler.bind(this);
         this.getJanjiTemuByIdHandler = this.getJanjiTemuByIdHandler.bind(this);
+        this.getMyJanjiTemuHandler = this.getMyJanjiTemuHandler.bind(this);
         this.createJanjiTemuHandler = this.createJanjiTemuHandler.bind(this);
         this.updateStatusJanjiTemuHandler = this.updateStatusJanjiTemuHandler.bind(this);
         this.deleteJanjiTemuHandler = this.deleteJanjiTemuHandler.bind(this);
@@ -158,6 +159,30 @@ class JanjiTemuHandler {
             };
         } catch (error) {
             return this._handleServerError(h, error);
+        }
+    }
+
+    async getMyJanjiTemuHandler(request, h) {
+        try {
+            const userId = request.auth.credentials.jwt.user.id;
+
+            // Ambil data mahasiswa berdasarkan userId
+            const mahasiswa = await this._mahasiswaService.getByUserId(userId);
+            if (!mahasiswa) {
+                throw new ClientError('Data mahasiswa tidak ditemukan', 404);
+            }
+
+            // Ambil janji temu berdasarkan NRP mahasiswa
+            const janjiTemuList = await this._service.getByNrp(mahasiswa.nrp);
+
+            return {
+                status: 'success',
+                data: {
+                    janjiTemu: janjiTemuList,
+                },
+            };
+        } catch (error) {
+            return this._handleError(h, error);
         }
     }
 

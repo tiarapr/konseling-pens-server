@@ -108,43 +108,48 @@ class KonselingService {
   async getById(id) {
     const query = {
       text: `
-        SELECT
-          k.id,
-          k.janji_temu_id,
-          jt.nomor_tiket,
-          jt.nrp,
-          jt.tipe_konsultasi,
-                    jt.jadwal_utama_tanggal,
-                    jt.jadwal_utama_jam_mulai,
-                    jt.jadwal_utama_jam_selesai,
-                    jt.jadwal_alternatif_tanggal,
-                    jt.jadwal_alternatif_jam_mulai,
-                    jt.jadwal_alternatif_jam_selesai,
-                    jt.tanggal_pengajuan,
-          m.nama_lengkap AS nama_mahasiswa,
-          k.konselor_profil_id,
-          kp.nama_lengkap AS nama_konselor,
-          s.label AS status,
-          k.tanggal_konseling,
-          k.jam_mulai,
-          k.jam_selesai,
-          k.lokasi,
-          k.status_kehadiran,
-          k.tanggal_konfirmasi,
-          k.status_id,
-          k.created_at,
-          k.created_by,
-          k.updated_at,
-          k.updated_by,
-          k.deleted_at,
-          k.deleted_by
-        FROM konseling k
-        JOIN janji_temu jt ON k.janji_temu_id = jt.id
-        JOIN mahasiswa m ON jt.nrp = m.nrp
-        JOIN konselor_profil kp ON k.konselor_profil_id = kp.id
-        JOIN status s ON k.status_id = s.id
-        WHERE k.id = $1 AND k.deleted_at IS NULL
-      `,
+      SELECT
+        k.id,
+        k.janji_temu_id,
+        jt.nomor_tiket,
+        jt.nrp,
+        jt.tipe_konsultasi,
+        jt.jadwal_utama_tanggal,
+        jt.jadwal_utama_jam_mulai,
+        jt.jadwal_utama_jam_selesai,
+        jt.jadwal_alternatif_tanggal,
+        jt.jadwal_alternatif_jam_mulai,
+        jt.jadwal_alternatif_jam_selesai,
+        jt.tanggal_pengajuan,
+        m.nama_lengkap AS nama_mahasiswa,
+        k.konselor_profil_id,
+        kp.nama_lengkap AS nama_konselor,
+        s.label AS status,
+        k.tanggal_konseling,
+        k.jam_mulai,
+        k.jam_selesai,
+        k.lokasi,
+        k.status_kehadiran,
+        k.tanggal_konfirmasi,
+        k.status_id,
+        k.created_at,
+        k.created_by,
+        k.updated_at,
+        k.updated_by,
+        k.deleted_at,
+        k.deleted_by,
+        r.id as rating_id,
+        r.rating as nilai_rating,
+        r.ulasan,
+        r.created_at as rating_created_at
+      FROM konseling k
+      JOIN janji_temu jt ON k.janji_temu_id = jt.id
+      JOIN mahasiswa m ON jt.nrp = m.nrp
+      JOIN konselor_profil kp ON k.konselor_profil_id = kp.id
+      JOIN status s ON k.status_id = s.id
+      LEFT JOIN rating r ON k.id = r.konseling_id
+      WHERE k.id = $1 AND k.deleted_at IS NULL
+    `,
       values: [id],
     };
 
@@ -155,6 +160,7 @@ class KonselingService {
     }
 
     const row = result.rows[0];
+
     return {
       id: row.id,
       janji_temu: {
@@ -188,6 +194,14 @@ class KonselingService {
         id: row.status_id,
         name: row.status,
       },
+      rating: row.rating_id
+        ? {
+          id: row.rating_id,
+          nilai: row.nilai_rating,
+          ulasan: row.ulasan,
+          created_at: row.rating_created_at,
+        }
+        : null,
       created_at: row.created_at,
       created_by: row.created_by,
       updated_at: row.updated_at,
@@ -195,6 +209,19 @@ class KonselingService {
       deleted_at: row.deleted_at,
       deleted_by: row.deleted_by,
     };
+  }
+
+  async getByNrp(nrp) {
+    const result = await this._pool.query(
+      `SELECT k.*, jt.nrp, kp.nama AS konselor_nama 
+         FROM konseling k
+         JOIN janji_temu jt ON k.janji_temu_id = jt.id
+         LEFT JOIN konselor_profil kp ON k.konselor_profil_id = kp.id
+         WHERE jt.nrp = $1 AND k.is_deleted = false
+         ORDER BY k.tanggal_konseling DESC`,
+      [nrp]
+    );
+    return result.rows;
   }
 
   async update(id, payload) {

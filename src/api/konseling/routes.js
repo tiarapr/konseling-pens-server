@@ -2,6 +2,17 @@ const checkPermission = require("../../middleware/checkPermission");
 
 const routes = (handler) => [
     {
+        method: 'POST',
+        path: '/konseling',
+        handler: handler.postKonselingHandler,
+        options: {
+            auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('create_konseling', 'manage_konselings') }
+            ]
+        },
+    },
+    {
         method: 'GET',
         path: '/konseling',
         handler: handler.getAllKonselingHandler,
@@ -24,13 +35,13 @@ const routes = (handler) => [
         },
     },
     {
-        method: 'POST',
-        path: '/konseling',
-        handler: handler.postKonselingHandler,
+        method: 'GET',
+        path: '/konseling/me',
+        handler: handler.getMyKonselingHandler,
         options: {
             auth: 'basicAndJwtStrategy',
             pre: [
-                { method: checkPermission('create_konseling', 'manage_konselings') }
+                { method: checkPermission('view_own_konseling') }
             ]
         },
     },

@@ -35,6 +35,17 @@ const routes = (handler) => [
         },
     },
     {
+        method: 'GET',
+        path: '/janji-temu/me',
+        handler: handler.getMyJanjiTemuHandler,
+        options: {
+            auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('view_own_janji_temu') }
+            ]
+        },
+    },
+    {
         method: 'PUT',
         path: '/janji-temu/{id}/status',
         handler: handler.updateStatusJanjiTemuHandler,

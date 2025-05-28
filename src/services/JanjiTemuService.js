@@ -95,6 +95,14 @@ class JanjiTemuService {
         return result.rows[0];
     }
 
+    async getByNrp(nrp) {
+        const result = await this._pool.query(
+            'SELECT * FROM janji_temu WHERE nrp = $1 AND is_deleted = false ORDER BY created_at DESC',
+            [nrp]
+        );
+        return result.rows;
+    }
+
     async create(payload) {
         const {
             nrp,

@@ -21,37 +21,6 @@ class KonselingHandler {
         this.deleteKonselingHandler = this.deleteKonselingHandler.bind(this);
     }
 
-    // Get all konseling records
-    async getAllKonselingHandler(request, h) {
-        try {
-            const data = await this._service.getAll();
-            return {
-                status: 'success',
-                data: {
-                    konseling: data,
-                },
-            };
-        } catch (error) {
-            return this._handleServerError(h, error);
-        }
-    }
-
-    // Get konseling by ID
-    async getKonselingByIdHandler(request, h) {
-        try {
-            const { id } = request.params;
-            const data = await this._service.getById(id);
-            return {
-                status: 'success',
-                data: {
-                    konseling: data,
-                },
-            };
-        } catch (error) {
-            return this._handleError(h, error);
-        }
-    }
-
     // Create new konseling
     async postKonselingHandler(request, h) {
         try {
@@ -111,6 +80,61 @@ class KonselingHandler {
                 },
             }).code(201);
 
+        } catch (error) {
+            return this._handleError(h, error);
+        }
+    }
+
+    // Get all konseling records
+    async getAllKonselingHandler(request, h) {
+        try {
+            const data = await this._service.getAll();
+            return {
+                status: 'success',
+                data: {
+                    konseling: data,
+                },
+            };
+        } catch (error) {
+            return this._handleServerError(h, error);
+        }
+    }
+
+    // Get konseling by ID
+    async getKonselingByIdHandler(request, h) {
+        try {
+            const { id } = request.params;
+            const data = await this._service.getById(id);
+            return {
+                status: 'success',
+                data: {
+                    konseling: data,
+                },
+            };
+        } catch (error) {
+            return this._handleError(h, error);
+        }
+    }
+
+    async getMyKonselingHandler(request, h) {
+        try {
+            const userId = request.auth.credentials.jwt.user.id;
+
+            // Step 1: Cari data mahasiswa berdasarkan userId
+            const mahasiswa = await this._mahasiswaService.getByUserId(userId);
+            if (!mahasiswa) {
+                throw new ClientError('Data mahasiswa tidak ditemukan', 404);
+            }
+
+            // Step 2: Ambil semua data konseling berdasarkan NRP mahasiswa
+            const konselingList = await this._service.getByNrp(mahasiswa.nrp);
+
+            return {
+                status: 'success',
+                data: {
+                    konseling: konselingList,
+                },
+            };
         } catch (error) {
             return this._handleError(h, error);
         }
