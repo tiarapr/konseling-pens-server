@@ -43,18 +43,49 @@ class PermissionHandler {
 
   async postPermissionHandler(request, h) {
     try {
-      this._validator.validatePermissionPayload(request.payload);
-      const { name } = request.payload;
-
+      const payload = request.payload;
       const createdBy = request.auth.credentials.jwt.user.id;
 
-      const result = await this._service.create({ name, created_by: createdBy });
+      let permissionsInput = [];
+
+      // Jika input adalah array
+      if (Array.isArray(payload)) {
+        if (payload.length === 0) {
+          throw new ClientError('Array permission tidak boleh kosong', 400);
+        }
+
+        // Validasi semua item
+        payload.forEach((permission) => {
+          this._validator.validatePermissionPayload(permission);
+        });
+
+        permissionsInput = payload.map((permission) => ({
+          name: permission.name,
+          created_by: createdBy,
+        }));
+      }
+      // Jika input adalah satu object
+      else if (typeof payload === 'object' && payload !== null) {
+        this._validator.validatePermissionPayload(payload);
+        permissionsInput = [{
+          name: payload.name,
+          created_by: createdBy,
+        }];
+      } else {
+        throw new ClientError('Payload harus berupa objek permission atau array of permissions', 400);
+      }
+
+      const results = await Promise.all(
+        permissionsInput.map((perm) => this._service.create(perm))
+      );
 
       const response = h.response({
         status: 'success',
-        message: 'Permission berhasil ditambahkan',
+        message: results.length > 1
+          ? 'Semua permission berhasil ditambahkan'
+          : 'Permission berhasil ditambahkan',
         data: {
-          permission: result,
+          permissions: results,
         },
       });
       response.code(201);
@@ -90,9 +121,9 @@ class PermissionHandler {
     try {
       const { id } = request.params;
       const deletedBy = request.auth.credentials.jwt.user.id;
-  
-      const result = await this._service.softDelete(id, deletedBy);  
-      
+
+      const result = await this._service.softDelete(id, deletedBy);
+
       return {
         status: 'success',
         message: 'Permission berhasil dihapus',
@@ -103,7 +134,7 @@ class PermissionHandler {
     } catch (error) {
       return this._handleError(h, error);
     }
-  }  
+  }
 
   _handleError(h, error) {
     if (error instanceof ClientError) {

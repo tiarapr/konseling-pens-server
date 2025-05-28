@@ -1,50 +1,51 @@
 const ClientError = require('../../exceptions/ClientError');
 
 class AdminProfilHandler {
-  constructor(service, userService, mailSender, validator) {
+  constructor(service, userService, emailVerificationService, mailSender, fileStorageService, validator) {
     this._service = service;
     this._userService = userService;
+    this._emailVerificationService = emailVerificationService;
     this._mailSender = mailSender;
+    this._fileStorageService = fileStorageService;
     this._validator = validator;
 
     this.getAdminProfilHandler = this.getAdminProfilHandler.bind(this);
     this.getAdminProfilByIdHandler = this.getAdminProfilByIdHandler.bind(this);
+    this.getOwnAdminProfilHandler = this.getOwnAdminProfilHandler.bind(this);
     this.createAdminAccountHandler = this.createAdminAccountHandler.bind(this);
     this.postAdminProfilHandler = this.postAdminProfilHandler.bind(this);
     this.updateAdminProfilHandler = this.updateAdminProfilHandler.bind(this);
     this.deleteAdminProfilHandler = this.deleteAdminProfilHandler.bind(this);
+    this.restoreAdminProfilHandler = this.restoreAdminProfilHandler.bind(this);
+    this.uploadAdminPhotoHandler = this.uploadAdminPhotoHandler.bind(this);
   }
 
   async createAdminAccountHandler(request, h) {
     this._validator.validateCreateAccountPayload(request.payload);
-    const { email, password, roleId, nama_lengkap, no_telepon } = request.payload;
+    const { email, phoneNumber, password, roleId, nama_lengkap } = request.payload;
 
     try {
-      // Cek apakah no_telepon sudah terdaftar
-      const existingPhoneNumber = await this._service.checkPhoneNumberExists(no_telepon);
-      if (existingPhoneNumber) {
-        throw new ClientError('The phone number is already used in another profile.', 400);
-      }
+      const createdBy = request.auth.credentials.jwt.user.id;
 
       // Langkah 1: Buat akun user terlebih dahulu
       const userId = await this._userService.addUser({
         email,
+        phoneNumber,
         password,
         isVerified: false,
         roleId,
+        createdBy
       });
 
       // Generate verification token
-      const verificationToken = await this._userService.generateVerificationToken(userId);
+      const verificationToken = await this._emailVerificationService.generateToken(userId);
 
       // Send verification email
       await this._mailSender.sendVerificationEmail(email, verificationToken);
 
-      const createdBy = request.auth.credentials.jwt.user.id;
-
       // Langkah 2: Setelah user dibuat, buat profil admin
       const adminProfile = await this._service.create({
-        nama_lengkap, no_telepon, user_id: userId, created_by: createdBy
+        nama_lengkap, user_id: userId, created_by: createdBy
       });
 
       const response = h.response({
@@ -56,6 +57,29 @@ class AdminProfilHandler {
       });
       response.code(201);
       return response;
+    } catch (error) {
+      return this._handleError(h, error);
+    }
+  }
+
+  async getOwnAdminProfilHandler(request, h) {
+    try {
+      const userId = request.auth.credentials.jwt.user.id;
+      const profile = await this._service.getByUserId(userId);
+
+      if (!profile) {
+        return h.response({
+          status: 'fail',
+          message: 'Profil admin tidak ditemukan',
+        }).code(404);
+      }
+
+      return {
+        status: 'success',
+        data: {
+          adminProfil: profile,
+        },
+      };
     } catch (error) {
       return this._handleError(h, error);
     }
@@ -93,7 +117,7 @@ class AdminProfilHandler {
   async postAdminProfilHandler(request, h) {
     try {
       this._validator.validateCreateProfilePayload(request.payload);
-      const { nama_lengkap, no_telepon, user_id } = request.payload;
+      const { nama_lengkap, user_id } = request.payload;
 
       const createdBy = request.auth.credentials.jwt.user.id;
 
@@ -103,13 +127,7 @@ class AdminProfilHandler {
         throw new ClientError('User ID sudah terdaftar di profil lain.', 400);
       }
 
-      // Cek apakah no_telepon sudah terdaftar di profil lain
-      const existingPhoneNumber = await this._service.checkPhoneNumberExists(no_telepon);
-      if (existingPhoneNumber) {
-        throw new ClientError('Nomor telepon sudah digunakan di profil lain.', 400);
-      }
-
-      const result = await this._service.create({ nama_lengkap, no_telepon, user_id, created_by: createdBy });
+      const result = await this._service.create({ nama_lengkap, user_id, created_by: createdBy });
 
       const response = h.response({
         status: 'success',
@@ -125,15 +143,47 @@ class AdminProfilHandler {
     }
   }
 
+  async uploadAdminPhotoHandler(request, h) {
+    try {
+      const { id } = request.params;
+      const { photo } = request.payload;
+
+      if (!photo || !photo.hapi || !photo.hapi.filename) {
+        throw new ClientError('File foto tidak ditemukan atau tidak valid.');
+      }
+
+      // Simpan file foto 
+      const savedFile = await this._fileStorageService.saveAdminPhotoFile(photo);
+
+      // Update profil admin dengan URL foto yang baru
+      const updatedProfile = await this._service.update(id, {
+        photo_url: savedFile.url,
+        updated_by: request.auth.credentials.jwt.user.id,
+      });
+
+      const response = h.response({
+        status: 'success',
+        message: 'Foto profil admin berhasil diupload',
+        data: {
+          adminProfil: updatedProfile,
+        },
+      });
+      response.code(200);
+      return response;
+    } catch (error) {
+      return this._handleError(h, error);
+    }
+  }
+
   async updateAdminProfilHandler(request, h) {
     try {
       const { id } = request.params;
       this._validator.validateUpdatePayload(request.payload);
-      const { nama_lengkap, no_telepon } = request.payload;
+      const { nama_lengkap } = request.payload;
 
       const updatedBy = request.auth.credentials.jwt.user.id;
 
-      const result = await this._service.update(id, { nama_lengkap, no_telepon, updated_by: updatedBy });
+      const result = await this._service.update(id, { nama_lengkap, updated_by: updatedBy });
 
       return {
         status: 'success',
@@ -150,14 +200,44 @@ class AdminProfilHandler {
   async deleteAdminProfilHandler(request, h) {
     try {
       const { id } = request.params;
-
       const deletedBy = request.auth.credentials.jwt.user.id;
 
+      // Langkah 1: Ambil profil admin terlebih dahulu
+      const adminProfile = await this._service.getById(id);
+      const userId = adminProfile.user_id;
+
+      // Langkah 2: Hapus profil admin (soft delete)
       const result = await this._service.softDelete(id, deletedBy);
+
+      // Langkah 3: Hapus user beserta role_user-nya (soft delete + hapus relasi)
+      await this._userService.deleteUser(userId, deletedBy);
 
       return {
         status: 'success',
-        message: 'Profil admin berhasil dihapus',
+        message: 'Profil dan akun admin berhasil dihapus',
+        data: {
+          result
+        },
+      };
+    } catch (error) {
+      return this._handleError(h, error);
+    }
+  }
+
+  async restoreAdminProfilHandler(request, h) {
+    try {
+      const { id } = request.params;
+      const restoredBy = request.auth.credentials.jwt.user.id;
+
+      // Langkah 1: Restore profil admin
+      const result = await this._service.restore(id, restoredBy);
+
+      // Langkah 2: Restore user
+      await this._userService.restoreUser(result.user_id, restoredBy);
+
+      return {
+        status: 'success',
+        message: 'Profil admin berhasil dipulihkan',
         data: {
           adminProfil: result,
         },

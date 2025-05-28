@@ -32,7 +32,7 @@ class KonselingService {
           $1, $2, $3, $4, $5,
           $6, $7, $8, $9, $10
         )
-        RETURNING id`,
+        RETURNING *`,
       values: [
         janji_temu_id, konselor_profil_id, tanggal_konseling, jam_mulai, jam_selesai, lokasi,
         status_kehadiran, tanggal_konfirmasi, status_id, created_by,
@@ -45,7 +45,7 @@ class KonselingService {
       throw new InvariantError("Gagal menambahkan konseling");
     }
 
-    return result.rows[0].id;
+    return result.rows[0];
   }
 
   async getAll() {
@@ -58,7 +58,7 @@ class KonselingService {
           m.nama_lengkap AS nama_mahasiswa,
           k.konselor_profil_id,
           kp.nama_lengkap AS nama_konselor,
-          s.name AS status,
+          s.label AS status,
           k.tanggal_konseling,
           k.jam_mulai,
           k.jam_selesai,
@@ -124,7 +124,7 @@ class KonselingService {
           m.nama_lengkap AS nama_mahasiswa,
           k.konselor_profil_id,
           kp.nama_lengkap AS nama_konselor,
-          s.name AS status,
+          s.label AS status,
           k.tanggal_konseling,
           k.jam_mulai,
           k.jam_selesai,
@@ -237,7 +237,7 @@ class KonselingService {
           updated_by = $9,
           updated_at = CURRENT_TIMESTAMP
         WHERE id = $10 AND deleted_at IS NULL
-        RETURNING id`,
+        RETURNING *`,
       values: [
         updatedTanggal,
         updatedJamMulai,
@@ -270,7 +270,7 @@ class KonselingService {
           updated_by = $2,
           updated_at = CURRENT_TIMESTAMP
         WHERE id = $3 AND deleted_at IS NULL
-        RETURNING id
+        RETURNING *
       `,
       values: [status_id, updated_by, id],
     };
@@ -300,7 +300,7 @@ class KonselingService {
           updated_by = $4,
           updated_at = CURRENT_TIMESTAMP
         WHERE id = $5 AND deleted_at IS NULL
-        RETURNING id
+        RETURNING *
       `,
       values: [
         status_kehadiran,
@@ -326,7 +326,7 @@ class KonselingService {
         SET deleted_at = CURRENT_TIMESTAMP,
             deleted_by = $1
         WHERE id = $2 AND deleted_at IS NULL
-        RETURNING id`,
+        RETURNING *`,
       values: [deleted_by, id],
     };
 

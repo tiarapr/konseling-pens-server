@@ -1,3 +1,5 @@
+const checkPermission = require("../../middleware/checkPermission");
+
 const routes = (handler) => [
     {
         method: 'GET',
@@ -5,6 +7,9 @@ const routes = (handler) => [
         handler: handler.getAllKonselingHandler,
         options: {
             auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('view_all_konseling', 'manage_konselings') }
+            ]
         },
     },
     {
@@ -13,6 +18,9 @@ const routes = (handler) => [
         handler: handler.getKonselingByIdHandler,
         options: {
             auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('view_konseling_by_id', 'manage_konselings') }
+            ]
         },
     },
     {
@@ -21,6 +29,9 @@ const routes = (handler) => [
         handler: handler.postKonselingHandler,
         options: {
             auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('create_konseling', 'manage_konselings') }
+            ]
         },
     },
     {
@@ -29,6 +40,9 @@ const routes = (handler) => [
         handler: handler.updateKonselingHandler,
         options: {
             auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('update_konseling', 'manage_konselings') }
+            ]
         },
     },
     {
@@ -37,6 +51,9 @@ const routes = (handler) => [
         handler: handler.updateStatusKonselingHandler,
         options: {
             auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('update_status_konseling', 'manage_konselings') }
+            ]
         },
     },
     {
@@ -45,6 +62,9 @@ const routes = (handler) => [
         handler: handler.konfirmasiKehadiranHandler,
         options: {
             auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('confirm_kehadiran_konseling', 'manage_konselings') }
+            ]
         },
     },
     {
@@ -53,6 +73,9 @@ const routes = (handler) => [
         handler: handler.deleteKonselingHandler,
         options: {
             auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('delete_konseling', 'manage_konselings') }
+            ]
         },
     },
 ];

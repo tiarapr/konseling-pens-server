@@ -1,7 +1,5 @@
-const { validate } = require("uuid");
 const InvariantError = require("../../exceptions/InvariantError");
-const { UserPayloadSchema, UpdateEmailPayloadSchema, UpdatePasswordPayloadSchema, ResetPasswordPayloadSchema } = require("./schema");
-const Joi = require('joi');
+const { UserPayloadSchema, UpdateEmailPayloadSchema, UpdatePhoneNumberPayloadSchema, UpdatePasswordPayloadSchema, ResetPasswordPayloadSchema } = require("./schema");
 
 const UserValidator = {
   validateUserPayload: (payload) => {
@@ -13,6 +11,13 @@ const UserValidator = {
   },
   validateUpdateEmailPayload: (payload) => {
     const validationResult = UpdateEmailPayloadSchema.validate(payload);
+
+    if (validationResult.error) {
+      throw new InvariantError(validationResult.error.message);
+    }
+  },
+  validateUpdatePhoneNumberPayload: (payload) => {
+    const validationResult = UpdatePhoneNumberPayloadSchema.validate(payload);
 
     if (validationResult.error) {
       throw new InvariantError(validationResult.error.message);

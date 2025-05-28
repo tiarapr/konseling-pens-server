@@ -5,8 +5,9 @@ const timeFormat = /^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/;
 
 const CreateJanjiTemuPayloadSchema = Joi.object({
   nrp: Joi.string().pattern(/^\d{10,15}$/).required(),
-  status_id: Joi.string().guid({ version: "uuidv4" }).required(),
-  tipe_konsultasi: Joi.string().max(50).required(),
+  tipe_konsultasi: Joi.string().valid('online', 'offline').required(),
+
+  preferensi_konselor_id: Joi.string().guid({ version: "uuidv4" }).allow(null).optional(),
 
   jadwal_utama_tanggal: Joi.string().pattern(datePattern).required(),
   jadwal_utama_jam_mulai: Joi.string().pattern(timeFormat).required()
@@ -22,7 +23,17 @@ const CreateJanjiTemuPayloadSchema = Joi.object({
 });
 
 const UpdateStatusJanjiTemuPayloadSchema = Joi.object({
-  status_id: Joi.string().guid({ version: "uuidv4" }).required(),
+  status: Joi.string()
+    .valid('menunggu_konfirmasi', 'dikonfirmasi', 'ditolak')
+    .required(),
+
+  alasan_penolakan: Joi.string()
+    .allow(null, '')
+    .when('status', {
+      is: 'ditolak',
+      then: Joi.string().min(5).required()
+        .messages({ 'any.required': 'Alasan penolakan wajib diisi jika status ditolak.' }),
+    }),
 });
 
 module.exports = {

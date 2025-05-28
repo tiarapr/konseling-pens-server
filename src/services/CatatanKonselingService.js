@@ -33,7 +33,7 @@ class CatatanKonselingService {
         ) VALUES (
           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
         )
-        RETURNING id
+        RETURNING *
       `,
       values: [
         konseling_id,
@@ -188,7 +188,7 @@ class CatatanKonselingService {
           updated_by = $9,
           updated_at = CURRENT_TIMESTAMP
         WHERE id = $10 AND deleted_at IS NULL
-        RETURNING id
+        RETURNING *
       `,
       values: [
         updatedDeskripsiMasalah,
@@ -221,7 +221,7 @@ class CatatanKonselingService {
         SET deleted_at = CURRENT_TIMESTAMP,
             deleted_by = $1
         WHERE id = $2 AND deleted_at IS NULL
-        RETURNING id
+        RETURNING *
       `,
       values: [deleted_by, id],
     };

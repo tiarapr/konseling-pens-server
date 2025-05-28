@@ -9,23 +9,21 @@ class StatusService {
     });
   }
 
-  async create({ name, tipe_status_id, created_by }) {
+  async create({ kode_status, label, warna = null, urutan, is_active = true }) {
     const query = {
       text: `
         INSERT INTO status (
-          name, tipe_status_id, created_by
+          kode_status, label, warna, urutan, is_active
         )
-        VALUES (
-          $1, $2, $3
-        )
+        VALUES ($1, $2, $3, $4, $5)
         RETURNING *`,
-      values: [name, tipe_status_id, created_by],
+      values: [kode_status, label, warna, urutan, is_active],
     };
 
     const result = await this._pool.query(query);
 
     if (!result.rows.length) {
-      throw new InvariantError("Failed to create status.");
+      throw new InvariantError("Gagal membuat status.");
     }
 
     return result.rows[0];
@@ -33,7 +31,7 @@ class StatusService {
 
   async getAll() {
     const query = {
-      text: `SELECT * FROM status WHERE deleted_at IS NULL`,
+      text: `SELECT * FROM status ORDER BY urutan ASC`,
     };
 
     const result = await this._pool.query(query);
@@ -42,63 +40,62 @@ class StatusService {
 
   async getById(id) {
     const query = {
-      text: `SELECT * FROM status WHERE id = $1 AND deleted_at IS NULL`,
+      text: `SELECT * FROM status WHERE id = $1`,
       values: [id],
     };
 
     const result = await this._pool.query(query);
 
     if (!result.rows.length) {
-      throw new NotFoundError("Status not found.");
+      throw new NotFoundError("Status tidak ditemukan.");
     }
 
     return result.rows[0];
   }
 
-  async update(id, payload) {
-    const { name, tipe_status_id, updated_by } = payload;
-
+  async update(id, { kode_status, label, warna, urutan, is_active }) {
     const existing = await this.getById(id);
 
-    const updatedName = name ?? existing.name;
-    const updatedTipeStatusId = tipe_status_id ?? existing.tipe_status_id;
-
-    const query = {
+    const updatedQuery = {
       text: `
         UPDATE status
-        SET name = $1,
-            tipe_status_id = $2,
-            updated_by = $3,
-            updated_at = current_timestamp
-        WHERE id = $4 AND deleted_at IS NULL
+        SET 
+          kode_status = $1,
+          label = $2,
+          warna = $3,
+          urutan = $4,
+          is_active = $5
+        WHERE id = $6
         RETURNING *`,
-      values: [updatedName, updatedTipeStatusId, updated_by, id],
+      values: [
+        kode_status ?? existing.kode_status,
+        label ?? existing.label,
+        warna ?? existing.warna,
+        urutan ?? existing.urutan,
+        is_active ?? existing.is_active,
+        id,
+      ],
     };
 
-    const result = await this._pool.query(query);
+    const result = await this._pool.query(updatedQuery);
 
     if (!result.rows.length) {
-      throw new NotFoundError("Status not found or already deleted.");
+      throw new NotFoundError("Status tidak ditemukan untuk diperbarui.");
     }
 
     return result.rows[0];
   }
 
-  async softDelete(id, deleted_by) {
+  async delete(id) {
     const query = {
-      text: `
-        UPDATE status
-        SET deleted_by = $1,
-            deleted_at = current_timestamp
-        WHERE id = $2 AND deleted_at IS NULL
-        RETURNING *`,
-      values: [deleted_by, id],
+      text: `DELETE FROM status WHERE id = $1 RETURNING *`,
+      values: [id],
     };
 
     const result = await this._pool.query(query);
 
     if (!result.rows.length) {
-      throw new NotFoundError("Status not found or already deleted.");
+      throw new NotFoundError("Status tidak ditemukan untuk dihapus.");
     }
 
     return result.rows[0];

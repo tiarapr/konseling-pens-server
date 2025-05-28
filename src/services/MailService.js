@@ -1,68 +1,153 @@
 const nodemailer = require('nodemailer');
 const InvariantError = require('../exceptions/InvariantError');
+const verificationEmail = require('../notifications/email-verification/EmailVerificationTemplate');
+const otpEmailTemplate = require('../notifications/otp/OTPEmailTemplate'); 
+const resetPasswordEmail = require('../notifications/reset-password/ResetPasswordTemplate');
+const janjiTemuCreatedEmailTemplate = require('../notifications/janji-temu/JanjiTemuCreatedEmailTemplate');
+const janjiTemuUpdatedEmailTemplate = require('../notifications/janji-temu/JanjiTemuUpdatedEmailTemplate');
+const BaseTemplate = require('../notifications/BaseTemplate');
 
 class MailService {
   constructor() {
     this._transporter = nodemailer.createTransport({
       host: process.env.MAIL_HOST,
-      port: process.env.MAIL_PORT,
+      port: parseInt(process.env.MAIL_PORT),
       secure: process.env.MAIL_SECURE === 'true',
       auth: {
         user: process.env.MAIL_USER,
         pass: process.env.MAIL_PASSWORD,
       },
+      tls: {
+        rejectUnauthorized: process.env.NODE_ENV === 'production'
+      }
     });
+
+    this._sender = `"${process.env.APP_NAME}" <${process.env.MAIL_SENDER}>`;
+    this._appName = process.env.APP_NAME;
+    this._baseUrl = process.env.BASE_URL;
+  }
+
+  async _sendMail({ to, subject, html }) {
+    try {
+      const mailOptions = {
+        from: this._sender,
+        to,
+        subject,
+        html,
+        text: html.replace(/<[^>]+>/g, '')
+      };
+
+      const info = await this._transporter.sendMail(mailOptions);
+      console.log(`Email sent to ${to}: ${info.messageId}`);
+      return info;
+    } catch (error) {
+      console.error('MailService Error:', error);
+      throw new InvariantError('Failed to send email');
+    }
   }
 
   async sendVerificationEmail(email, token) {
-    const message = {
-      from: process.env.MAIL_SENDER,
+    const verificationUrl = `${this._baseUrl}/verify-email?token=${token}`;
+    const html = verificationEmail(this._appName, verificationUrl);
+
+    return this._sendMail({
       to: email,
-      subject: `${process.env.APP_NAME} - Email Verification`,
-      html: `
-        <h1>Verify Your Email</h1>
-        <p>Click the link below to verify your email:</p>
-        <a href="${process.env.BASE_URL}/verify-email?token=${token}">Verify Email</a>
-      `,
-    };
-
-    await this._transporter.sendMail(message);
+      subject: `[${this._appName}] Verifikasi Email`,
+      html
+    });
   }
-  
-  async sendResetPasswordEmail(email, token) {
-    try {
-      const resetUrl = `${process.env.BASE_URL}/reset-password?token=${token}`;
-      
-      const mailOptions = {
-        from: `"${this._appName}" <${this._sender}>`,
-        to: email,
-        subject: 'Password Reset Request',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #2563eb;">Password Reset</h2>
-            <p>We received a request to reset your password for ${this._appName}. Click the button below to reset it:</p>
-            
-            <div style="margin: 20px 0;">
-              <a href="${resetUrl}" 
-                 style="display: inline-block; padding: 10px 20px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 5px;">
-                Reset Password
-              </a>
-            </div>
-            
-            <p>If you didn't request a password reset, please ignore this email or contact support if you have concerns.</p>
-            
-            <p style="margin-top: 30px; font-size: 12px; color: #6b7280;">
-              This link will expire in 1 hour. For security reasons, please don't share this email with anyone.
-            </p>
-          </div>
-        `,
-        text: `Reset your password by visiting this link: ${resetUrl}\n\nThis link will expire in 1 hour.`,
-      };
 
-      await this._transporter.sendMail(mailOptions);
+  async sendOtpEmail(email, otpCode) {
+    const html = otpEmailTemplate(this._appName, otpCode);
+    return this._sendMail({
+      to: email,
+      subject: `[${this._appName}] Kode OTP Anda`,
+      html
+    });
+  }
+
+  async sendResetPasswordEmail(email, token, userName) {
+    const resetUrl = `${this._baseUrl}/reset-password?token=${token}`;
+    const html = resetPasswordEmail(this._appName, resetUrl, userName);
+
+    return this._sendMail({
+      to: email,
+      subject: `[${this._appName}] Permintaan Reset Password`,
+      html
+    });
+  }
+
+  async sendJanjiTemuNotification(email, mahasiswa, janjiTemuData) {
+    const html = janjiTemuCreatedEmailTemplate.untukMahasiswa(
+      this._appName,
+      mahasiswa.nama,
+      {
+        nomor_tiket: janjiTemuData.nomor_tiket,
+        tipe_konsultasi: janjiTemuData.tipe_konsultasi,
+        jadwal_utama: janjiTemuData.jadwal_utama,
+        jadwal_alternatif: janjiTemuData.jadwal_alternatif
+      }
+    );
+
+    return this._sendMail({
+      to: email,
+      subject: `[${this._appName}] Janji Temu Berhasil Diajukan`,
+      html
+    });
+  }
+
+  async sendJanjiTemuAdminNotification(email, mahasiswa, janjiTemuData) {
+    const html = janjiTemuCreatedEmailTemplate.untukAdmin(
+      this._appName,
+      mahasiswa.nama,
+      {
+        nomor_tiket: janjiTemuData.nomor_tiket,
+        tipe_konsultasi: janjiTemuData.tipe_konsultasi,
+        jadwal_utama: janjiTemuData.jadwal_utama,
+        jadwal_alternatif: janjiTemuData.jadwal_alternatif
+      }
+    );
+
+    return this._sendMail({
+      to: email,
+      subject: `[${this._appName}] Permintaan Janji Temu Baru`,
+      html
+    });
+  }
+
+  async sendJanjiTemuUpdateNotification(email, mahasiswa, janjiTemuData) {
+    const html = janjiTemuUpdatedEmailTemplate(
+      this._appName,
+      mahasiswa.nama,
+      {
+        nomor_tiket: janjiTemuData.nomorTiket,
+        tipe_konsultasi: janjiTemuData.tipeKonsultasi,
+        jadwal_utama: janjiTemuData.jadwalUtama,
+        jadwal_alternatif: janjiTemuData.jadwalAlternatif,
+        status: janjiTemuData.status
+      }
+    );
+
+    return this._sendMail({
+      to: email,
+      subject: `[${this._appName}] Status Janji Temu Diperbarui`,
+      html
+    });
+  }
+
+  async sendEmail(to, subject, content) {
+    const html = BaseTemplate(content, this._appName);
+    return this._sendMail({ to, subject, html });
+  }
+
+  async verifyConnection() {
+    try {
+      await this._transporter.verify();
+      console.log('SMTP connection verified');
+      return true;
     } catch (error) {
-      console.error('Error sending password reset email:', error);
-      throw new InvariantError('Failed to send password reset email');
+      console.error('SMTP connection failed:', error);
+      return false;
     }
   }
 }

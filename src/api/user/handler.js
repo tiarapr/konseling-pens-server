@@ -1,8 +1,11 @@
+const { user } = require("pg/lib/defaults");
 const ClientError = require("../../exceptions/ClientError");
 
 class UserHandler {
-  constructor(service, validator, mailSender) {
+  constructor(service, validator, emailVerificationService, passwordResetService, mailSender) {
     this._service = service;
+    this._emailVerificationService = emailVerificationService;
+    this._passwordResetService = passwordResetService;
     this._validator = validator;
     this._mailSender = mailSender;
 
@@ -13,26 +16,30 @@ class UserHandler {
     this.verifyEmailHandler = this.verifyEmailHandler.bind(this);
     this.resendVerificationEmailHandler = this.resendVerificationEmailHandler.bind(this);
     this.updateUserEmailHandler = this.updateUserEmailHandler.bind(this);
+    this.updateUserPhoneNumberHandler = this.updateUserPhoneNumberHandler.bind(this);
     this.updateUserPasswordHandler = this.updateUserPasswordHandler.bind(this);
     this.forgotPasswordHandler = this.forgotPasswordHandler.bind(this);
     this.resetPasswordHandler = this.resetPasswordHandler.bind(this);
+    this.deleteUserHandler = this.deleteUserHandler.bind(this);
+    this.restoreUserHandler = this.restoreUserHandler.bind(this);
   }
 
   async postUserHandler(request, h) {
     try {
       this._validator.validateUserPayload(request.payload);
-      const { email, password, roleId } = request.payload;
+      const { email, phoneNumber, password, roleId } = request.payload;
 
       // Add user with is_verified set to false by default
       const userId = await this._service.addUser({
         email,
+        phoneNumber,
         password,
         isVerified: false,
         roleId,
       });
 
       // Generate verification token
-      const verificationToken = await this._service.generateVerificationToken(userId);
+      const verificationToken = await this._emailVerificationService.generateToken(userId);
 
       // Send verification email
       await this._mailSender.sendVerificationEmail(email, verificationToken);
@@ -52,11 +59,14 @@ class UserHandler {
       const { token } = request.query;
 
       // Verify the token and update user's verification status
-      await this._service.verifyEmail(token);
+      const userId = await this._emailVerificationService.verifyEmail(token);
 
       return {
         status: "success",
         message: "Email successfully verified",
+        data: {
+          user_id: userId,
+        }
       };
     } catch (error) {
       return this._handleError(error, h, "Failed to verify email");
@@ -79,10 +89,10 @@ class UserHandler {
       }
 
       // 2. Invalidate token lama
-      await this._service.invalidateOldVerificationTokens(user.id);
+      await this._emailVerificationService.invalidateOldTokens(user.id);
 
       // 3. Generate token baru
-      const verificationToken = await this._service.generateVerificationToken(user.id);
+      const verificationToken = await this._emailVerificationService.generateToken(user.id);
 
       // 4. Kirim ulang email
       await this._mailSender.sendVerificationEmail(user.email, verificationToken);
@@ -144,6 +154,11 @@ class UserHandler {
     try {
       const { id } = request.params;
       const { email } = request.payload;
+      const userId = request.auth.credentials.jwt.user.id;
+
+      if (id !== userId) {
+        throw new ClientError('You can only update your own email');
+      }
 
       this._validator.validateUpdateEmailPayload({ email });
 
@@ -151,10 +166,10 @@ class UserHandler {
       await this._service.verifyNewEmail(email);
 
       // Update email user
-      await this._service.updateUserEmail(id, email);
+      await this._service.updateUserEmail(id, email, userId);
 
       // Generate token verifikasi baru
-      const verificationToken = await this._service.generateVerificationToken(id);
+      const verificationToken = await this._emailVerificationService.generateToken(id);
       await this._mailSender.sendVerificationEmail(email, verificationToken);
 
       return h.response({
@@ -167,10 +182,43 @@ class UserHandler {
     }
   }
 
+  async updateUserPhoneNumberHandler(request, h) {
+    try {
+      const { id } = request.params;
+      const { phoneNumber } = request.payload;
+      const userId = request.auth.credentials.jwt.user.id;
+
+      if (id !== userId) {
+        throw new ClientError('You can only update your own phone number');
+      }
+
+      this._validator.validateUpdatePhoneNumberPayload({ phoneNumber });
+
+      // Pastikan nomor telepon baru tidak digunakan user lain
+      await this._service.verifyUserPhoneNumber(phoneNumber);
+
+      // Update nomor telepon user
+      await this._service.updateUserPhoneNumber(id, phoneNumber, userId);
+
+      return h.response({
+        status: 'success',
+        message: 'Phone number updated successfully.',
+      }).code(200);
+
+    } catch (error) {
+      return this._handleError(error, h, 'Failed to update phone number');
+    }
+  }
+
   async updateUserPasswordHandler(request, h) {
     try {
       const { id } = request.params;
       const { oldPassword, newPassword } = request.payload;
+      const userId = request.auth.credentials.jwt.user.id;
+
+      if (id !== userId) {
+        throw new ClientError('You can only update your own password');
+      }
 
       this._validator.validateUpdatePasswordPayload({ oldPassword, newPassword });
 
@@ -178,7 +226,7 @@ class UserHandler {
       await this._service.verifyUserPassword(id, oldPassword);
 
       // Update ke password baru
-      await this._service.updateUserPassword(id, newPassword);
+      await this._service.updateUserPassword(id, newPassword, userId);
 
       return h.response({
         status: 'success',
@@ -201,7 +249,7 @@ class UserHandler {
       }
 
       // Generate token reset password
-      const resetToken = await this._service.generateResetPasswordToken(user.id);
+      const resetToken = await this._passwordResetService.generateResetPasswordToken(user.id);
 
       // Kirim email reset password
       await this._mailSender.sendResetPasswordEmail(user.email, resetToken);
@@ -224,7 +272,7 @@ class UserHandler {
       this._validator.validateResetPasswordPayload({ password });
 
       // Verifikasi token dan ambil user id
-      const userId = await this._service.verifyResetPasswordToken(token);
+      const userId = await this._passwordResetService.verifyResetPasswordToken(token);
 
       // Update password user
       await this._service.updateResetPassword(userId, password);
@@ -236,6 +284,40 @@ class UserHandler {
 
     } catch (error) {
       return this._handleError(error, h, 'Failed to reset password');
+    }
+  }
+
+  async deleteUserHandler(request, h) {
+    try {
+      const { id } = request.params;
+      const deletedBy = request.auth.credentials.jwt.user.id;
+
+      // Hapus user
+      await this._service.deleteUser(id, deletedBy);
+
+      return h.response({
+        status: 'success',
+        message: 'User deleted successfully.',
+      }).code(200);
+
+    } catch (error) {
+      return this._handleError(error, h, 'Failed to delete user');
+    }
+  }
+
+  async restoreUserHandler(request, h) {
+    try {
+      const { id } = request.params;
+      const restoredBy = request.auth.credentials.jwt.user.id;
+
+      await this._service.restoreUser(id, restoredBy);
+
+      return h.response({
+        status: 'success',
+        message: 'User restored successfully.',
+      }).code(200);
+    } catch (error) {
+      return this._handleError(error, h, 'Failed to restore user');
     }
   }
 

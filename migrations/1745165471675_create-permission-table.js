@@ -11,48 +11,52 @@ exports.shorthands = undefined;
 exports.up = (pgm) => {
     pgm.createTable("permission", {
         id: {
-          type: "UUID",
-          primaryKey: true,
-          default: pgm.func("gen_random_uuid()"),
+            type: "UUID",
+            primaryKey: true,
+            default: pgm.func("gen_random_uuid()"),
         },
         name: {
             type: "VARCHAR(50)",
+            unique: true,
             notNull: true
         },
         created_at: {
-            type: "timestamp",
+            type: "TIMESTAMP",
             notNull: true,
-            default: pgm.func("current_timestamp"),
+            default: pgm.func("current_TIMESTAMP")
         },
         created_by: {
             type: "UUID",
-            notNull: true,
             references: '"user"(id)',
             onUpdate: "CASCADE",
+            notNull: false,
         },
         updated_at: {
-            type: "timestamp",
-            notNull: false,
+            type: "TIMESTAMP",
             default: null,
         },
         updated_by: {
             type: "UUID",
-            notNull: false,
             references: '"user"(id)',
             onUpdate: "CASCADE",
         },
         deleted_at: {
-            type: "timestamp",
-            notNull: false,
+            type: "TIMESTAMP",
             default: null,
         },
         deleted_by: {
             type: "UUID",
-            notNull: false,
             references: '"user"(id)',
             onUpdate: "CASCADE",
         },
     });
+
+    pgm.sql(`
+        INSERT INTO permission (name) VALUES
+        ('manage_users'),
+        ('manage_roles'),
+        ('manage_permissions')
+    `);
 };
 
 /**

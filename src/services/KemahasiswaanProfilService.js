@@ -33,29 +33,6 @@ class KemahasiswaanProfilService {
     return result.rowCount > 0;
   }  
 
-  // Cek apakah nomor telepon sudah terdaftar di profil lain
-  async checkPhoneNumberExists(phoneNumber) {
-    const result = await this._pool.query(
-      'SELECT 1 FROM admin_profil WHERE no_telepon = $1 UNION SELECT 1 FROM konselor_profil WHERE no_telepon = $1 UNION SELECT 1 FROM kemahasiswaan_profil WHERE no_telepon = $1',
-      [phoneNumber]
-    );
-    return result.rowCount > 0;
-  }
-
-  // Validasi apakah nomor telepon unik
-  async validateUniquePhoneNumber(no_telepon) {
-    const query = {
-      text: `SELECT * FROM kemahasiswaan_profil WHERE no_telepon = $1 AND deleted_at IS NULL`,
-      values: [no_telepon],
-    };
-
-    const result = await this._pool.query(query);
-
-    if (result.rows.length > 0) {
-      throw new ClientError('Phone number already in use by another kemahasiswaan profile.', 400);
-    }
-  }
-
   // Validasi apakah user sudah memiliki profil kemahasiswaan
   async validateUniqueUserProfile(user_id) {
     const query = {
@@ -71,20 +48,17 @@ class KemahasiswaanProfilService {
   }
 
   // Membuat profil kemahasiswaan baru
-  async create({ nip, nama_lengkap, jabatan, no_telepon, user_id, created_by }) {
-    // Validasi nomor telepon unik
-    await this.validateUniquePhoneNumber(no_telepon);
-
+  async create({ nip, nama_lengkap, jabatan, user_id, photo_url = null, created_by }) {
     const query = {
       text: `
         INSERT INTO kemahasiswaan_profil (
-          nip, nama_lengkap, jabatan, no_telepon, user_id, created_by
+          nip, nama_lengkap, jabatan, user_id, photo_url, created_by
         )
         VALUES (
           $1, $2, $3, $4, $5, $6
         )
         RETURNING *`,
-      values: [nip, nama_lengkap, jabatan, no_telepon, user_id, created_by],
+      values: [nip, nama_lengkap, jabatan, user_id, photo_url, created_by],
     };
 
     const result = await this._pool.query(query);
@@ -140,7 +114,7 @@ class KemahasiswaanProfilService {
 
   // Mengupdate profil kemahasiswaan berdasarkan ID
   async update(id, payload) {
-    const { nip, nama_lengkap, jabatan, no_telepon, updated_by } = payload;
+    const { nip, nama_lengkap, jabatan, photo_url, updated_by } = payload;
 
     // Ambil data lama dulu
     const existing = await this.getById(id);
@@ -148,12 +122,7 @@ class KemahasiswaanProfilService {
     const updatedNip = nip ?? existing.nip;
     const updatedNamaLengkap = nama_lengkap ?? existing.nama_lengkap;
     const updatedJabatan = jabatan ?? existing.jabatan;
-    const updatedNoTelepon = no_telepon ?? existing.no_telepon;
-
-    // Jika nomor telepon diubah, validasi nomor telepon yang baru
-    if (updatedNoTelepon !== existing.no_telepon) {
-      await this.validateUniquePhoneNumber(updatedNoTelepon);
-    }
+    const updatedPhotoUrl = photo_url ?? existing.photo_url;
 
     const query = {
       text: `
@@ -161,12 +130,12 @@ class KemahasiswaanProfilService {
         SET nip = $1,
             nama_lengkap = $2,
             jabatan = $3,
-            no_telepon = $4,
+            photo_url = $4,
             updated_by = $5,
             updated_at = current_timestamp
         WHERE id = $6 AND deleted_at IS NULL
         RETURNING *`,
-      values: [updatedNip, updatedNamaLengkap, updatedJabatan, updatedNoTelepon, updated_by, id],
+      values: [updatedNip, updatedNamaLengkap, updatedJabatan, updatedPhotoUrl, updated_by, id],
     };
 
     const result = await this._pool.query(query);
@@ -194,6 +163,28 @@ class KemahasiswaanProfilService {
 
     if (!result.rows.length) {
       throw new NotFoundError("Kemahasiswaan profile not found or already deleted.");
+    }
+
+    return result.rows[0];
+  }
+
+  async restore(id, restored_by) {
+    const query = {
+      text: `
+        UPDATE kemahasiswaan_profil
+        SET deleted_by = NULL,
+            deleted_at = NULL,
+            restored_by = $1,
+            restored_at = current_timestamp
+        WHERE id = $2 AND deleted_at IS NOT NULL
+        RETURNING *`,
+      values: [restored_by, id],
+    };
+
+    const result = await this._pool.query(query);
+
+    if (!result.rows.length) {
+      throw new NotFoundError("Kemahasiswaan profile not found or not deleted.");
     }
 
     return result.rows[0];

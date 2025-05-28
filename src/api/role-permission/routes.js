@@ -1,3 +1,5 @@
+const checkPermission = require('../../middleware/checkPermission');
+
 const routes = (handler) => [
     {
         method: 'POST',
@@ -5,7 +7,10 @@ const routes = (handler) => [
         handler: handler.postRolePermissionHandler,
         options: {
             auth: 'basicAndJwtStrategy',
-        },
+            pre: [
+                { method: checkPermission('manage_role_permissions') }
+            ]
+        }
     },
     {
         method: 'GET',
@@ -13,6 +18,9 @@ const routes = (handler) => [
         handler: handler.getRolePermissionsHandler,
         options: {
             auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('manage_role_permissions') }
+            ]
         },
     },
     {
@@ -21,6 +29,9 @@ const routes = (handler) => [
         handler: handler.getRolePermissionByIdHandler,
         options: {
             auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('manage_role_permissions') }
+            ]
         },
     },
     {
@@ -29,14 +40,9 @@ const routes = (handler) => [
         handler: handler.getPermissionsByRoleHandler,
         options: {
             auth: 'basicAndJwtStrategy',
-        },
-    },
-    {
-        method: 'GET',
-        path: '/permissions/{permissionId}/roles',
-        handler: handler.getRolesByPermissionHandler,
-        options: {
-            auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('manage_role_permissions') }
+            ]
         },
     },
     {
@@ -45,6 +51,9 @@ const routes = (handler) => [
         handler: handler.deleteRolePermissionHandler,
         options: {
             auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('manage_role_permissions') }
+            ]
         },
     },
 ];

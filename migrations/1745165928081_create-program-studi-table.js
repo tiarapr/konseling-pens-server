@@ -30,38 +30,38 @@ exports.up = (pgm) => {
             notNull: true 
         },
         created_at: {
-            type: "timestamp",
+            type: "TIMESTAMP",
             notNull: true,
-            default: pgm.func("current_timestamp"),
+            default: pgm.func("current_TIMESTAMP")
         },
         created_by: {
-             type: "UUID",
-            notNull: true,
+            type: "UUID",
             references: '"user"(id)',
             onUpdate: "CASCADE",
+            notNull: true,
         },
         updated_at: {
-            type: "timestamp",
-            notNull: false,
+            type: "TIMESTAMP",
             default: null,
         },
         updated_by: {
             type: "UUID",
-            notNull: false,
             references: '"user"(id)',
             onUpdate: "CASCADE",
         },
         deleted_at: {
-            type: "timestamp",
-            notNull: false,
+            type: "TIMESTAMP",
             default: null,
         },
         deleted_by: {
             type: "UUID",
-            notNull: false,
             references: '"user"(id)',
             onUpdate: "CASCADE",
         },
+    });
+
+    pgm.createIndex("program_studi", "nama_program_studi", {
+        name: "idx_nama_program_studi_in_program_studi"
     });
 };
 

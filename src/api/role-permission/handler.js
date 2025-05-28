@@ -10,7 +10,6 @@ class RolePermissionHandler {
         this.postRolePermissionHandler = this.postRolePermissionHandler.bind(this);
         this.deleteRolePermissionHandler = this.deleteRolePermissionHandler.bind(this);
         this.getPermissionsByRoleHandler = this.getPermissionsByRoleHandler.bind(this);
-        this.getRolesByPermissionHandler = this.getRolesByPermissionHandler.bind(this);
     }
 
     async getRolePermissionsHandler(request, h) {
@@ -44,23 +43,49 @@ class RolePermissionHandler {
 
     async postRolePermissionHandler(request, h) {
         try {
+            console.log('Received payload:', request.payload);
+
             this._validator.validateRolePermissionPayload(request.payload);
-            const { role_id, permission_id, created_by } = request.payload;
 
-            // Verify permission assignment first
-            await this._service.verifyPermissionAssignment(role_id, permission_id);
+            const createdBy = request.auth.credentials.jwt.user.id;
+            const { role_id, permission_names } = request.payload;
 
-            const rolePermission = await this._service.assignPermission({
-                roleId: role_id,
-                permissionId: permission_id,
-                userId: created_by
-            });
+            console.log('permission_names:', permission_names, 'type:', typeof permission_names);
+
+            if (!Array.isArray(permission_names)) {
+                throw new ClientError('permission_names harus berupa array string');
+            }
+
+            // pastikan semua elemen permission_names adalah string
+            const allStrings = permission_names.every(p => typeof p === 'string');
+            if (!allStrings) {
+                throw new ClientError('Semua elemen permission_names harus string');
+            }
+
+            const permissions = await this._service.getPermissionsByNames(permission_names);
+
+            const foundNames = permissions.map(p => p.name);
+            const notFound = permission_names.filter(name => !foundNames.includes(name));
+            if (notFound.length > 0) {
+                throw new ClientError(`Permission tidak ditemukan: ${notFound.join(', ')}`);
+            }
+
+            const results = [];
+
+            for (const permission of permissions) {
+                const result = await this._service.assignPermission({
+                    roleId: role_id,
+                    permissionId: permission.id,
+                    created_by: createdBy
+                });
+                results.push(result);
+            }
 
             const response = h.response({
                 status: 'success',
-                message: 'Role permission berhasil ditambahkan',
+                message: 'Permissions berhasil ditambahkan',
                 data: {
-                    rolePermission,
+                    rolePermissions: results,
                 },
             });
             response.code(201);
@@ -70,36 +95,10 @@ class RolePermissionHandler {
         }
     }
 
-    async deleteRolePermissionHandler(request, h) {
-        try {
-            const { id } = request.params;
-            const { deleted_by } = request.payload;
-
-            // First get the role permission to get role_id and permission_id
-            const rolePermission = await this._service.getById(id);
-
-            const result = await this._service.revokePermission({
-                roleId: rolePermission.role_id,
-                permissionId: rolePermission.permission_id,
-                userId: deleted_by
-            });
-
-            return {
-                status: 'success',
-                message: 'Role permission berhasil dihapus',
-                data: {
-                    rolePermission: result,
-                },
-            };
-        } catch (error) {
-            return this._handleError(h, error);
-        }
-    }
-
     async getPermissionsByRoleHandler(request, h) {
         try {
             const { roleId } = request.params;
-            const permissions = await this._service.getRolePermissions(roleId);
+            const permissions = await this._service.getPermissionsByRoleId(roleId);
 
             return {
                 status: 'success',
@@ -112,15 +111,26 @@ class RolePermissionHandler {
         }
     }
 
-    async getRolesByPermissionHandler(request, h) {
+    async deleteRolePermissionHandler(request, h) {
         try {
-            const { permissionId } = request.params;
-            const roles = await this._service.getPermissionRoles(permissionId);
+            const { id } = request.params;
+
+            const deletedBy = request.auth.credentials.jwt.user.id;
+
+            // First get the role permission to get role_id and permission_id
+            const rolePermission = await this._service.getById(id);
+
+            const result = await this._service.revokePermission({
+                roleId: rolePermission.role_id,
+                permissionId: rolePermission.permission_id,
+                userId: deletedBy
+            });
 
             return {
                 status: 'success',
+                message: 'Role permission berhasil dihapus',
                 data: {
-                    roles,
+                    rolePermission: result,
                 },
             };
         } catch (error) {

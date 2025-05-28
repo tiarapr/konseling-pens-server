@@ -25,7 +25,7 @@ class KonselorProfilService {
 
     return result.rows[0];
   }
-  
+
   // Cek apakah user_id sudah terdaftar di profil lain
   async checkUserIdExists(userId) {
     const query = {
@@ -44,38 +44,9 @@ class KonselorProfilService {
       `,
       values: [userId],
     };
-  
-    const result = await this._pool.query(query);
-    return result.rowCount > 0;
-  }  
-
-  // Cek apakah no_telepon sudah terdaftar di profil lain
-  async checkPhoneNumberExists(phoneNumber) {
-    const query = {
-      text: `SELECT 1 FROM admin_profil WHERE no_telepon = $1 
-             UNION 
-             SELECT 1 FROM konselor_profil WHERE no_telepon = $1 
-             UNION 
-             SELECT 1 FROM kemahasiswaan_profil WHERE no_telepon = $1`,
-      values: [phoneNumber],
-    };
 
     const result = await this._pool.query(query);
     return result.rowCount > 0;
-  }
-
-  // Validasi jika no_telepon unik
-  async validateUniquePhoneNumber(no_telepon) {
-    const query = {
-      text: `SELECT * FROM konselor_profil WHERE no_telepon = $1 AND deleted_at IS NULL`,
-      values: [no_telepon],
-    };
-
-    const result = await this._pool.query(query);
-
-    if (result.rows.length > 0) {
-      throw new ClientError('Phone number already in use by another konselor profile.', 400);
-    }
   }
 
   // Validasi jika user sudah memiliki profil
@@ -93,20 +64,17 @@ class KonselorProfilService {
   }
 
   // Membuat profil konselor baru
-  async create({ nip, nama_lengkap, spesialisasi, no_telepon, user_id, created_by }) {
-    // Check if phone number is unique
-    await this.validateUniquePhoneNumber(no_telepon);
-
+  async create({ sipp, nama_lengkap, spesialisasi, user_id, created_by, photo_url = null }) {
     const query = {
       text: `
         INSERT INTO konselor_profil (
-          nip, nama_lengkap, spesialisasi, no_telepon, user_id, created_by
+          sipp, nama_lengkap, spesialisasi, user_id, created_by, photo_url
         )
         VALUES (
           $1, $2, $3, $4, $5, $6
         )
         RETURNING *`,
-      values: [nip, nama_lengkap, spesialisasi, no_telepon, user_id, created_by],
+      values: [sipp, nama_lengkap, spesialisasi, user_id, created_by, photo_url],
     };
 
     const result = await this._pool.query(query);
@@ -146,32 +114,27 @@ class KonselorProfilService {
 
   // Update konselor profile by ID
   async update(id, payload) {
-    const { nip, nama_lengkap, spesialisasi, no_telepon, updated_by } = payload;
+    const { sipp, nama_lengkap, spesialisasi, photo_url, updated_by } = payload;
 
     const existing = await this.getById(id);
 
-    const updatedNip = nip ?? existing.nip;
+    const updatedSipp = sipp ?? existing.sipp;
     const updatedNamaLengkap = nama_lengkap ?? existing.nama_lengkap;
     const updatedSpesialisasi = spesialisasi ?? existing.spesialisasi;
-    const updatedNoTelepon = no_telepon ?? existing.no_telepon;
-
-    // Check if phone number is updated and validate its uniqueness
-    if (updatedNoTelepon !== existing.no_telepon) {
-      await this.validateUniquePhoneNumber(updatedNoTelepon);
-    }
+    const updatedPhotoUrl = photo_url ?? existing.photo_url;
 
     const query = {
       text: `
         UPDATE konselor_profil
-        SET nip = $1,
+        SET sipp = $1,
             nama_lengkap = $2,
             spesialisasi = $3,
-            no_telepon = $4,
+            photo_url = $4,
             updated_by = $5,
             updated_at = current_timestamp
         WHERE id = $6 AND deleted_at IS NULL
         RETURNING *`,
-      values: [updatedNip, updatedNamaLengkap, updatedSpesialisasi, updatedNoTelepon, updated_by, id],
+      values: [updatedSipp, updatedNamaLengkap, updatedSpesialisasi, updatedPhotoUrl, updated_by, id],
     };
 
     const result = await this._pool.query(query);
@@ -199,6 +162,30 @@ class KonselorProfilService {
 
     if (!result.rows.length) {
       throw new NotFoundError("Konselor profile not found or already deleted.");
+    }
+
+    return result.rows[0];
+  }
+
+  // Restore konselor profile
+  async restore(id, restored_by) {
+    const query = {
+      text: `
+          UPDATE konselor_profil
+          SET 
+            restored_by = $1,
+            restored_at = current_timestamp,
+            deleted_by = NULL,
+            deleted_at = NULL
+          WHERE id = $2 AND deleted_at IS NOT NULL
+          RETURNING *`,
+      values: [restored_by, id],
+    };
+
+    const result = await this._pool.query(query);
+
+    if (result.rowCount === 0) {
+      throw new NotFoundError("Konselor profile not found or has not been deleted.");
     }
 
     return result.rows[0];

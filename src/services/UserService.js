@@ -1,4 +1,3 @@
-const { nanoid } = require("nanoid");
 const { Pool } = require("pg");
 const bcrypt = require("bcrypt");
 const InvariantError = require("../exceptions/InvariantError");
@@ -15,12 +14,73 @@ class UserService {
     this._tokenExpirationHours = 24;
   }
 
+  async addUser({ email, phoneNumber, password, isVerified = false, roleId, createdBy }) {
+    await this.verifyNewEmail(email);
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const insertQuery = {
+      text: `INSERT INTO "user" (email, phone_number, password, is_verified, created_at)
+           VALUES ($1, $2, $3, $4, NOW())
+           RETURNING id`,
+      values: [email, phoneNumber, hashedPassword, isVerified],
+    };
+
+    const result = await this._pool.query(insertQuery);
+
+    if (!result.rows.length) {
+      throw new InvariantError("Failed to add user.");
+    }
+
+    const userId = result.rows[0].id;
+
+    // Tentukan siapa yang membuat user ini
+    const creatorId = createdBy || userId;
+
+    // Update created_by
+    await this._pool.query({
+      text: `UPDATE "user" SET created_by = $1 WHERE id = $2`,
+      values: [creatorId, userId],
+    });
+
+    // Insert ke role_user
+    await this._pool.query({
+      text: `INSERT INTO role_user (
+           user_id, role_id, created_at, created_by
+         ) VALUES ($1, $2, NOW(), $3)`,
+      values: [userId, roleId, creatorId],
+    });
+
+    return userId;
+  }
+
+  async getAdmins() {
+    const query = {
+      text: `SELECT u.id, u.email, u.phone_number, u.is_verified, u.created_at, u.updated_at, r.name as role_name
+         FROM "user" u
+         JOIN role_user ru ON u.id = ru.user_id
+         JOIN role r ON ru.role_id = r.id
+         WHERE r.name = 'admin' AND u.deleted_at IS NULL`,
+      values: [],
+    };
+
+    const result = await this._pool.query(query);
+
+    if (result.rows.length === 0) {
+      throw new NotFoundError("No admins found.");
+    }
+
+    return result.rows;
+  }
+
   async getAllUser() {
     const query = {
-      text: `SELECT u.id, u.email, u.is_verified, u.created_at, r.name as role_name
-             FROM "user" u
-             JOIN role_user ru ON u.id = ru.user_id
-             JOIN role r ON ru.role_id = r.id`,
+      text: `SELECT u.id, u.email, u.phone_number, u.is_verified, u.created_at, r.name as role_name
+         FROM "user" u
+         JOIN role_user ru ON u.id = ru.user_id
+         JOIN role r ON ru.role_id = r.id
+         WHERE u.deleted_at IS NULL
+         ORDER BY u.created_at DESC`,
     };
 
     const result = await this._pool.query(query);
@@ -29,11 +89,11 @@ class UserService {
 
   async getUserById(userId) {
     const query = {
-      text: `SELECT u.id, u.email, u.is_verified, u.created_at, u.updated_at, r.name as role_name
-             FROM "user" u
-             JOIN role_user ru ON u.id = ru.user_id
-             JOIN role r ON ru.role_id = r.id
-             WHERE u.id = $1`,
+      text: `SELECT u.id, u.email, u.phone_number, u.is_verified, u.created_at, u.updated_at, r.name as role_name
+         FROM "user" u
+         JOIN role_user ru ON u.id = ru.user_id
+         JOIN role r ON ru.role_id = r.id
+         WHERE u.id = $1 AND u.deleted_at IS NULL`,
       values: [userId],
     };
 
@@ -44,108 +104,15 @@ class UserService {
     }
 
     return result.rows[0];
-  }
-
-  async addUser({ email, password, isVerified = false, roleId }) {
-    await this.verifyNewEmail(email);
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const query = {
-      text: `INSERT INTO "user" (email, password, is_verified, created_at) 
-             VALUES ($1, $2, $3, NOW()) 
-             RETURNING id`,
-      values: [email, hashedPassword, isVerified],
-    };
-
-    const result = await this._pool.query(query);
-
-    if (!result.rows.length) {
-      throw new InvariantError("Failed to add user.");
-    }
-
-    const userId = result.rows[0].id;
-
-    await this._pool.query({
-      text: `INSERT INTO role_user (user_id, role_id) VALUES ($1, $2)`,
-      values: [userId, roleId],
-    });
-
-    return userId;
-  }
-
-  async generateVerificationToken(userId) {
-    // Verify user exists and is not already verified
-    const user = await this.getUserById(userId);
-    if (user.is_verified) {
-      throw new InvariantError("User is already verified");
-    }
-
-    // Generate token and expiration date
-    const token = nanoid(32);
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + this._tokenExpirationHours);
-
-    // Store verification token
-    const query = {
-      text: `INSERT INTO email_verification_token (user_id, token, expires_at) 
-             VALUES ($1, $2, $3) 
-             RETURNING token`,
-      values: [userId, token, expiresAt],
-    };
-
-    const result = await this._pool.query(query);
-
-    if (!result.rows.length) {
-      throw new InvariantError("Failed to generate verification token");
-    }
-
-    return result.rows[0].token;
-  }
-
-  async verifyEmail(token) {
-    // Get token and check expiration
-    const query = {
-      text: `SELECT user_id, expires_at 
-             FROM email_verification_token 
-             WHERE token = $1 AND used_at IS NULL`,
-      values: [token],
-    };
-
-    const result = await this._pool.query(query);
-
-    if (!result.rows.length) {
-      throw new InvariantError("Invalid or expired verification token");
-    }
-
-    const { user_id, expires_at } = result.rows[0];
-
-    if (new Date(expires_at) < new Date()) {
-      throw new InvariantError("Verification token has expired");
-    }
-
-    // Mark user as verified
-    await this._pool.query({
-      text: 'UPDATE "user" SET is_verified = true, verified_at = NOW() WHERE id = $1',
-      values: [user_id],
-    });
-
-    // Mark token as used
-    await this._pool.query({
-      text: "UPDATE email_verification_token SET used_at = NOW() WHERE token = $1",
-      values: [token],
-    });
-
-    return user_id;
   }
 
   async getCurrentUserById(userId) {
     const query = {
-      text: `SELECT u.id, u.email, u.is_verified, u.created_at, u.updated_at, r.name as role_name
+      text: `SELECT u.id, u.email, u.phone_number, u.is_verified, u.created_at, u.updated_at, r.name as role_name
            FROM "user" u
            JOIN role_user ru ON u.id = ru.user_id
            JOIN role r ON ru.role_id = r.id
-           WHERE u.id = $1`,
+           WHERE u.id = $1 AND u.deleted_at IS NULL`,
       values: [userId],
     };
 
@@ -157,12 +124,17 @@ class UserService {
 
     return result.rows[0];
   }
-  
+
   async getUserByEmail(email) {
     const query = {
-      text: `SELECT id, email, is_verified, created_at 
-             FROM "user"
-             WHERE LOWER(email) = LOWER($1)`,
+      text: `
+      SELECT u.id, u.email, u.is_verified, u.created_at, r.name AS role_name
+      FROM "user" u
+      JOIN role_user ru ON ru.user_id = u.id AND ru.deleted_at IS NULL
+      JOIN role r ON r.id = ru.role_id
+      WHERE LOWER(u.email) = LOWER($1)
+      LIMIT 1
+    `,
       values: [email.trim()],
     };
 
@@ -170,35 +142,9 @@ class UserService {
     return result.rows[0];
   }
 
-  async invalidateOldVerificationTokens(userId) {
-    await this._pool.query({
-      text: `UPDATE email_verification_token 
-             SET used_at = NOW() 
-             WHERE user_id = $1 AND used_at IS NULL`,
-      values: [userId],
-    });
-  }
-
-  async resendVerificationEmail(userId) {
-    const user = await this.getUserById(userId);
-
-    if (user.is_verified) {
-      throw new InvariantError("User is already verified");
-    }
-
-    // Invalidate any existing tokens
-    await this._pool.query({
-      text: "UPDATE email_verification_token SET used_at = NOW() WHERE user_id = $1 AND used_at IS NULL",
-      values: [userId],
-    });
-
-    // Generate new token
-    return this.generateVerificationToken(userId);
-  }
-
   async verifyNewEmail(email) {
     const query = {
-      text: 'SELECT 1 FROM "user" WHERE email = $1',
+      text: 'SELECT 1 FROM "user" WHERE email = $1 AND deleted_at IS NULL',
       values: [email],
     };
 
@@ -209,15 +155,46 @@ class UserService {
     }
   }
 
-  async updateUserEmail(id, newEmail) {
+  async updateUserEmail(id, newEmail, updated_by) {
     const query = {
       text: `
         UPDATE "user"
-        SET email = $1, is_verified = FALSE, verified_at = NULL, updated_at = NOW() 
-        WHERE id = $2
-        RETURNING id
+        SET email = $1, is_verified = FALSE, verified_at = NULL, updated_at = NOW(), updated_by = $2
+        WHERE id = $3
+        RETURNING *
       `,
-      values: [newEmail, id],
+      values: [newEmail, updated_by, id],
+    };
+
+    const result = await this._pool.query(query);
+
+    if (!result.rows.length) {
+      throw new ClientError('User not found');
+    }
+  }
+
+  async verifyUserPhoneNumber(phoneNumber) {
+    const query = {
+      text: 'SELECT id FROM "user" WHERE phone_number = $1',
+      values: [phoneNumber],
+    };
+
+    const result = await this._pool.query(query);
+
+    if (result.rows.length > 0) {
+      throw new InvariantError('Phone Number is already in use.');
+    }
+  }
+
+  async updateUserPhoneNumber(id, newPhoneNumber, updated_by) {
+    const query = {
+      text: `
+        UPDATE "user"
+        SET phone_number = $1, updated_at = NOW() , updated_by = $2
+        WHERE id = $3
+        RETURNING *
+      `,
+      values: [newPhoneNumber, updated_by, id],
     };
 
     const result = await this._pool.query(query);
@@ -247,18 +224,18 @@ class UserService {
     }
   }
 
-  async updateUserPassword(id, newPassword) {
+  async updateUserPassword(id, newPassword, updated_by) {
     // Step 3: Hash the new password and update it in the database
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     const updatePasswordQuery = {
       text: `
         UPDATE "user"
-        SET password = $1, updated_at = NOW() 
-        WHERE id = $2
-        RETURNING id
+        SET password = $1, updated_at = NOW() , updated_by = $2
+        WHERE id = $3
+        RETURNING *
       `,
-      values: [hashedPassword, id],
+      values: [hashedPassword, updated_by, id],
     };
 
     const updateResult = await this._pool.query(updatePasswordQuery);
@@ -266,56 +243,6 @@ class UserService {
     if (!updateResult.rows.length) {
       throw new ClientError('User not found');
     }
-  }
-
-  async generateResetPasswordToken(userId) {
-    const token = nanoid(32);
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + this._tokenExpirationHours);
-
-    const query = {
-      text: `INSERT INTO reset_password_tokens (user_id, token, expires_at)
-             VALUES ($1, $2, $3)
-             RETURNING token`,
-      values: [userId, token, expiresAt],
-    };
-
-    const result = await this._pool.query(query);
-
-    if (!result.rows.length) {
-      throw new InvariantError('Failed to generate reset password token');
-    }
-
-    return result.rows[0].token;
-  }
-
-  async verifyResetPasswordToken(token) {
-    const query = {
-      text: `SELECT user_id, expires_at 
-             FROM reset_password_tokens 
-             WHERE token = $1 AND used_at IS NULL`,
-      values: [token],
-    };
-
-    const result = await this._pool.query(query);
-
-    if (!result.rows.length) {
-      throw new InvariantError('Invalid or expired reset password token');
-    }
-
-    const { user_id, expires_at } = result.rows[0];
-
-    if (new Date(expires_at) < new Date()) {
-      throw new InvariantError('Reset password token has expired');
-    }
-
-    // Mark token as used
-    await this._pool.query({
-      text: `UPDATE reset_password_tokens SET used_at = NOW() WHERE token = $1`,
-      values: [token],
-    });
-
-    return user_id;
   }
 
   async updateResetPassword(id, newPassword) {
@@ -345,7 +272,7 @@ class UserService {
     const updatePasswordQuery = {
       text: `
         UPDATE "user" 
-        SET password = $1, updated_at = NOW() 
+        SET password = $1, updated_at = NOW(), updated_by = $2
         WHERE id = $2
         RETURNING id
       `,
@@ -384,6 +311,69 @@ class UserService {
 
     return id;
   }
+
+  async deleteUser(id, deleted_by) {
+    // Soft delete user
+    const userDeleteQuery = {
+      text: `UPDATE "user" 
+         SET deleted_at = NOW(), deleted_by = $1 
+         WHERE id = $2 AND deleted_at IS NULL`,
+      values: [deleted_by, id],
+    };
+
+    const result = await this._pool.query(userDeleteQuery);
+
+    if (!result.rowCount) {
+      throw new NotFoundError("User not found or already deleted.");
+    }
+
+    // Delete associated role_user entries
+    await this._pool.query({
+      text: `
+        UPDATE role_user 
+        SET deleted_at = NOW(), deleted_by = $1 
+        WHERE user_id = $2 AND deleted_at IS NULL
+      `,
+      values: [deleted_by, id],
+    });
+  }
+
+  async restoreUser(id, restored_by) {
+    const checkQuery = {
+      text: `SELECT id FROM "user" WHERE id = $1 AND deleted_at IS NOT NULL`,
+      values: [id],
+    };
+
+    const checkResult = await this._pool.query(checkQuery);
+
+    if (!checkResult.rows.length) {
+      throw new NotFoundError("User not found or not deleted.");
+    }
+
+    // Restore user
+    const restoreUserQuery = {
+      text: `UPDATE "user"
+         SET deleted_at = NULL, deleted_by = NULL, updated_at = NOW(), restored_at = NOW(), restored_by = $2
+         WHERE id = $1 AND deleted_at IS NOT NULL
+         RETURNING *`,
+      values: [id, restored_by],
+    };
+
+    await this._pool.query(restoreUserQuery);
+
+    // Restore associated role_user entries
+    const restoreRoleUserQuery = {
+      text: `UPDATE role_user
+           SET deleted_at = NULL, deleted_by = NULL, restored_at = NOW(), restored_by = $2
+           WHERE user_id = $1 AND deleted_at IS NOT NULL`,
+      values: [id, restored_by],
+    };
+
+    await this._pool.query(restoreRoleUserQuery);
+
+    return { message: "User and associated roles successfully restored." };
+  }
+
 }
 
 module.exports = UserService;

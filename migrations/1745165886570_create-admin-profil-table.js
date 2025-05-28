@@ -11,57 +11,68 @@ exports.shorthands = undefined;
 exports.up = (pgm) => {
     pgm.createTable("admin_profil", {
         id: {
-          type: "UUID",
-          primaryKey: true,
-          default: pgm.func("gen_random_uuid()"),
+            type: "UUID",
+            primaryKey: true,
+            default: pgm.func("gen_random_uuid()"),
         },
-        nama_lengkap: { 
-            type: "VARCHAR(250)", 
-            notNull: true 
-        },
-        no_telepon: { 
-            type: "VARCHAR(50)", 
-            notNull: true 
+        nama_lengkap: {
+            type: "VARCHAR(250)",
+            notNull: true
         },
         user_id: {
-             type: "UUID",
+            type: "UUID",
+            unique: true,
             notNull: true,
             references: '"user"(id)',
             onUpdate: "CASCADE",
+        },
+        photo_url: {
+            type: "TEXT",
+            notNull: false,
+            default: null,
         },
         created_at: {
-            type: "timestamp",
+            type: "TIMESTAMP",
             notNull: true,
-            default: pgm.func("current_timestamp"),
+            default: pgm.func("current_TIMESTAMP")
         },
         created_by: {
-             type: "UUID",
-            notNull: true,
+            type: "UUID",
             references: '"user"(id)',
             onUpdate: "CASCADE",
+            notNull: true,
         },
         updated_at: {
-            type: "timestamp",
-            notNull: false,
+            type: "TIMESTAMP",
             default: null,
         },
         updated_by: {
             type: "UUID",
-            notNull: false,
             references: '"user"(id)',
             onUpdate: "CASCADE",
         },
         deleted_at: {
-            type: "timestamp",
-            notNull: false,
+            type: "TIMESTAMP",
             default: null,
         },
         deleted_by: {
             type: "UUID",
-            notNull: false,
             references: '"user"(id)',
             onUpdate: "CASCADE",
         },
+        restored_at: {
+            type: "TIMESTAMP",
+            default: null
+        },
+        restored_by: {
+            type: "UUID",
+            references: '"user"(id)',
+            onUpdate: 'CASCADE',
+        },
+    });
+
+    pgm.createIndex("admin_profil", "nama_lengkap", {
+        name: "idx_nama_lengkap_in_admin_profil",
     });
 };
 

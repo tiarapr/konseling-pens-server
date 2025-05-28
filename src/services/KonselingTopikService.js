@@ -19,7 +19,7 @@ class KonselingTopikService {
         ) VALUES (
           $1, $2, $3
         )
-        RETURNING id
+        RETURNING *
       `,
       values: [konseling_id, topik_id, created_by],
     };
@@ -68,7 +68,7 @@ class KonselingTopikService {
         SET deleted_at = CURRENT_TIMESTAMP,
             deleted_by = $1
         WHERE id = $2 AND deleted_at IS NULL
-        RETURNING id
+        RETURNING *
       `,
       values: [deleted_by, id],
     };
@@ -96,7 +96,7 @@ class KonselingTopikService {
           updated_by = $1,
           updated_at = CURRENT_TIMESTAMP
         WHERE id = $2 AND deleted_at IS NULL
-        RETURNING id
+        RETURNING *
       `,
       values: [updatedUpdatedBy, id],
     };

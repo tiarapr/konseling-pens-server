@@ -1,3 +1,5 @@
+const checkPermission = require("../../middleware/checkPermission");
+
 const routes = (handler) => [
     {
         method: 'POST',
@@ -5,6 +7,9 @@ const routes = (handler) => [
         handler: handler.createJanjiTemuHandler,
         options: {
             auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('create_janji_temu', 'manage_janji_temus') }
+            ]
         },
     },
     {
@@ -13,6 +18,20 @@ const routes = (handler) => [
         handler: handler.getAllJanjiTemuHandler,
         options: {
             auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('view_all_janji_temu', 'manage_janji_temus') }
+            ]
+        },
+    },
+    {
+        method: 'GET',
+        path: '/janji-temu/{id}',
+        handler: handler.getJanjiTemuByIdHandler,
+        options: {
+            auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('view_janji_temu_by_id', 'manage_janji_temus') }
+            ]
         },
     },
     {
@@ -21,6 +40,9 @@ const routes = (handler) => [
         handler: handler.updateStatusJanjiTemuHandler,
         options: {
             auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('update_status_janji_temu', 'manage_janji_temus') }
+            ]
         },
     },
     {
@@ -29,6 +51,9 @@ const routes = (handler) => [
         handler: handler.deleteJanjiTemuHandler,
         options: {
             auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('delete_janji_temu', 'manage_janji_temus') }
+            ]
         },
     },
 ];

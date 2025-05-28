@@ -1,10 +1,12 @@
 const ClientError = require('../../exceptions/ClientError');
 
 class KonselorProfilHandler {
-  constructor(service, userService, mailSender, validator) {
+  constructor(service, userService, emailVerificationService, mailSender, fileStorageService, validator) {
     this._service = service;
     this._userService = userService;
+    this._emailVerificationService = emailVerificationService;
     this._mailSender = mailSender;
+    this._fileStorageService = fileStorageService;
     this._validator = validator;
 
     this.createKonselorAccountHandler = this.createKonselorAccountHandler.bind(this);
@@ -12,40 +14,37 @@ class KonselorProfilHandler {
     this.getKonselorProfilByIdHandler = this.getKonselorProfilByIdHandler.bind(this);
     this.getKonselorProfilByUserIdHandler = this.getKonselorProfilByUserIdHandler.bind(this);
     this.postKonselorProfilHandler = this.postKonselorProfilHandler.bind(this);
+    this.uploadKonselorPhotoHandler = this.uploadKonselorPhotoHandler.bind(this);
     this.updateKonselorProfilHandler = this.updateKonselorProfilHandler.bind(this);
     this.deleteKonselorProfilHandler = this.deleteKonselorProfilHandler.bind(this);
+    this.restoreKonselorProfilHandler = this.restoreKonselorProfilHandler.bind(this);
   }
 
   async createKonselorAccountHandler(request, h) {
     this._validator.validateCreateAccountPayload(request.payload);
-    const { email, password, roleId, nip, nama_lengkap, spesialisasi, no_telepon } = request.payload;
+    const { email, phoneNumber, password, roleId, sipp, nama_lengkap, spesialisasi } = request.payload;
 
     try {
-      // Cek apakah no_telepon sudah terdaftar
-      const existingPhoneNumber = await this._service.checkPhoneNumberExists(no_telepon);
-      if (existingPhoneNumber) {
-        throw new ClientError('The phone number is already used in another profile.', 400);
-      }
+      const createdBy = request.auth.credentials.jwt.user.id;
 
-      // Langkah 3: Buat akun user terlebih dahulu
       const userId = await this._userService.addUser({
         email,
+        phoneNumber,
         password,
         isVerified: false,
         roleId,
+        createdBy
       });
 
       // Generate verification token
-      const verificationToken = await this._userService.generateVerificationToken(userId);
+      const verificationToken = await this._emailVerificationService.generateToken(userId);
 
       // Send verification email
       await this._mailSender.sendVerificationEmail(email, verificationToken);
 
-      const createdBy = request.auth.credentials.jwt.user.id;
-
       // Langkah 4: Setelah user dibuat, buat profil konselor
       const konselorProfile = await this._service.create({
-        nip, nama_lengkap, spesialisasi, no_telepon, user_id: userId, created_by: createdBy
+        sipp, nama_lengkap, spesialisasi, user_id: userId, created_by: createdBy
       });
 
       const response = h.response({
@@ -109,7 +108,7 @@ class KonselorProfilHandler {
   async postKonselorProfilHandler(request, h) {
     try {
       this._validator.validateCreateProfilePayload(request.payload);
-      const { nip, nama_lengkap, spesialisasi, no_telepon, user_id } = request.payload;
+      const { sipp, nama_lengkap, spesialisasi, user_id } = request.payload;
 
       const createdBy = request.auth.credentials.jwt.user.id;
 
@@ -119,14 +118,8 @@ class KonselorProfilHandler {
         throw new ClientError('User ID already registered in another profile.', 400);
       }
 
-      // Cek apakah no_telepon sudah terdaftar di profil lain
-      const existingPhoneNumber = await this._service.checkPhoneNumberExists(no_telepon);
-      if (existingPhoneNumber) {
-        throw new ClientError('The phone number is already used in another profile.', 400);
-      }
-
       const konselor = await this._service.create({
-        nip, nama_lengkap, spesialisasi, no_telepon, user_id, created_by: createdBy
+        sipp, nama_lengkap, spesialisasi, user_id, created_by: createdBy
       });
 
       const response = h.response({
@@ -143,16 +136,48 @@ class KonselorProfilHandler {
     }
   }
 
+  async uploadKonselorPhotoHandler(request, h) {
+    try {
+      const { id } = request.params;
+      const { photo } = request.payload;
+
+      if (!photo || !photo.hapi || !photo.hapi.filename) {
+        throw new ClientError('File foto tidak ditemukan atau tidak valid.');
+      }
+
+      // Simpan file foto 
+      const savedFile = await this._fileStorageService.saveKonselorPhotoFile(photo);
+
+      // Update profil konselor dengan URL foto yang baru
+      const updatedProfile = await this._service.update(id, {
+        photo_url: savedFile.url,
+        updated_by: request.auth.credentials.jwt.user.id,
+      });
+
+      const response = h.response({
+        status: 'success',
+        message: 'Foto profil konselor berhasil diupload',
+        data: {
+          konselorProfil: updatedProfile,
+        },
+      });
+      response.code(200);
+      return response;
+    } catch (error) {
+      return this._handleError(h, error);
+    }
+  }
+
   async updateKonselorProfilHandler(request, h) {
     try {
       const { id } = request.params;
       this._validator.validateUpdatePayload(request.payload);
-      const { nip, nama_lengkap, spesialisasi, no_telepon } = request.payload;
+      const { sipp, nama_lengkap, spesialisasi, photo_url } = request.payload;
 
       const updatedBy = request.auth.credentials.jwt.user.id;
 
       const konselor = await this._service.update(id, {
-        nip, nama_lengkap, spesialisasi, no_telepon, updated_by: updatedBy
+        sipp, nama_lengkap, spesialisasi, photo_url, updated_by: updatedBy
       });
 
       return {
@@ -173,13 +198,41 @@ class KonselorProfilHandler {
 
       const deletedBy = request.auth.credentials.jwt.user.id;
 
-      const konselor = await this._service.softDelete(id, deletedBy);
+      const konselorProfile = await this._service.getById(id);
+      const userId = konselorProfile.user_id;
+
+      const result = await this._service.softDelete(id, deletedBy);
+
+      await this._userService.deleteUser(userId, deletedBy);
 
       return {
         status: 'success',
-        message: 'Profil konselor berhasil dihapus',
+        message: 'Profil dan akun konselor berhasil dihapus',
         data: {
-          konselor,
+          result,
+        },
+      };
+    } catch (error) {
+      return this._handleError(h, error);
+    }
+  }
+
+  async restoreKonselorProfilHandler(request, h) {
+    try {
+      const { id } = request.params;
+      const restoredBy = request.auth.credentials.jwt.user.id;
+
+      // Langkah 1: Restore profil konselor
+      const result = await this._service.restore(id, restoredBy);
+
+      // Langkah 2: Restore user
+      await this._userService.restoreUser(result.user_id, restoredBy);
+
+      return {
+        status: 'success',
+        message: 'Profil Konselor berhasil dipulihkan',
+        data: {
+          konselorProfil: result,
         },
       };
     } catch (error) {

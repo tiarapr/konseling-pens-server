@@ -1,9 +1,15 @@
 const ClientError = require('../../exceptions/ClientError');
+const MahasiswaService = require('../../services/MahasiswaService');
+const UserService = require('../../services/UserService');
+const WhatsAppService = require('../../services/WhatsAppService');
 
 class KonselingHandler {
     constructor(service, validator) {
         this._service = service;
         this._validator = validator;
+        this._mahasiswaService = new MahasiswaService();
+        this._userService = new UserService();
+        this._whatsappService = new WhatsAppService();
 
         // Bind methods
         this.getAllKonselingHandler = this.getAllKonselingHandler.bind(this);
@@ -54,6 +60,7 @@ class KonselingHandler {
 
             const createdBy = request.auth.credentials.jwt.user.id;
 
+            // Step 1: Buat konseling
             const result = await this._service.create({
                 janji_temu_id,
                 konselor_profil_id,
@@ -67,15 +74,43 @@ class KonselingHandler {
                 created_by: createdBy,
             });
 
-            const response = h.response({
+            // Step 2: Ambil detail lengkap dari konseling yang baru dibuat
+            const konseling = await this._service.getById(result.id);
+
+            // Step 3: Ambil user data (mahasiswa dan user WhatsApp)
+            const mahasiswa = await this._mahasiswaService.getByNrp(konseling.janji_temu.nrp);
+            const user = await this._userService.getUserById(mahasiswa.user_id);
+
+            const tanggal = new Date(konseling.tanggal_konseling).toLocaleDateString('id-ID', {
+                day: 'numeric', month: 'long', year: 'numeric'
+            });
+
+            const waktu = `${konseling.jam_mulai.substring(0, 5)} - ${konseling.jam_selesai.substring(0, 5)}`;
+
+            // Step 4: Kirim notifikasi WhatsApp
+            const dataNotif = {
+                recipient: {
+                    name: mahasiswa.nama_lengkap,
+                    phone: user.phone_number,
+                },
+                konseling: {
+                    konselor: konseling.konselor.nama,
+                    tanggal: tanggal,
+                    waktu: waktu,
+                    lokasi: konseling.lokasi,
+                },
+            };
+
+            await this._whatsappService.sendJadwalKonselingNotification(dataNotif);
+
+            return h.response({
                 status: 'success',
                 message: 'Konseling successfully created',
                 data: {
-                    konseling: result,
+                    konseling: konseling, // ← kirim full detail, bukan cuma id
                 },
-            });
-            response.code(201); // HTTP status code for created
-            return response;
+            }).code(201);
+
         } catch (error) {
             return this._handleError(h, error);
         }
@@ -161,7 +196,7 @@ class KonselingHandler {
     async deleteKonselingHandler(request, h) {
         try {
             const { id } = request.params;
-            
+
             const deletedBy = request.auth.credentials.jwt.user.id;
 
             const result = await this._service.softDelete(id, deletedBy);
@@ -196,7 +231,7 @@ class KonselingHandler {
         console.error(error);
         const response = h.response({
             status: 'error',
-            message: 'Sorry, there was an error on the server.',
+            message: error.message || 'Maaf, terjadi kegagalan pada server kami.',
         });
         response.code(500);
         return response;

@@ -11,7 +11,7 @@ class AuthenticationService {
   async addRefreshToken(userId, token, ipAddress, userAgent, expiresAt) {
     const query = {
       text: `INSERT INTO authentication(user_id, token, ip_address, user_agent, created_at, expires_at, is_revoked) 
-             VALUES($1, $2, $3, $4, NOW(), $5, false) RETURNING id`,
+             VALUES($1, $2, $3, $4, NOW(), $5, false) RETURNING *`,
       values: [userId, token, ipAddress, userAgent, expiresAt],
     };
 
