@@ -1,3 +1,5 @@
+const checkPermission = require("../../middleware/checkPermission");
+
 const routes = (handler) => [
   {
     method: 'POST',
@@ -17,7 +19,7 @@ const routes = (handler) => [
   },
   // Verify user email using token from email link
   {
-    method: "GET",
+    method: "POST",
     path: "/verify-email",
     handler: handler.verifyEmailHandler,
     options: {
@@ -52,6 +54,9 @@ const routes = (handler) => [
     handler: handler.getAllUserHandler,
     options: {
       auth: 'basicAndJwtStrategy',
+      pre: [
+        { method: checkPermission(['view_all_user', 'manage_users']) }
+      ]
     },
   },
   // Get a specific user by ID
@@ -61,6 +66,9 @@ const routes = (handler) => [
     handler: handler.getUserByIdHandler,
     options: {
       auth: 'basicAndJwtStrategy',
+      pre: [
+        { method: checkPermission(['view_user_by_id', 'manage_users']) }
+      ]
     },
   },
   // Update user email (requires re-verification)
@@ -70,6 +78,21 @@ const routes = (handler) => [
     handler: handler.updateUserEmailHandler,
     options: {
       auth: 'basicAndJwtStrategy',
+      pre: [
+        { method: checkPermission(['update_user_email', 'manage_users']) }
+      ]
+    },
+  },
+  // update user phone number
+  {
+    method: "PATCH",
+    path: "/user/{id}/phone",
+    handler: handler.updateUserPhoneNumberHandler,
+    options: {
+      auth: 'basicAndJwtStrategy',
+      pre: [
+        { method: checkPermission(['update_user_phone_number', 'manage_users']) }
+      ]
     },
   },
   // Update user password (with old password confirmation)
@@ -79,6 +102,9 @@ const routes = (handler) => [
     handler: handler.updateUserPasswordHandler,
     options: {
       auth: 'basicAndJwtStrategy',
+      pre: [
+        { method: checkPermission(['update_user_password', 'manage_users']) }
+      ]
     },
   },
   // Request a password reset link via email
@@ -110,6 +136,29 @@ const routes = (handler) => [
     options: {
       auth: false
     }
+  },
+  // Delete user
+  {
+    method: "DELETE",
+    path: "/user/{id}",
+    handler: handler.deleteUserHandler,
+    options: {
+      auth: 'basicAndJwtStrategy',
+      pre: [
+        { method: checkPermission(['delete_user', 'manage_users']) }
+      ]
+    },
+  },
+  {
+    method: 'PUT',
+    path: '/user/{id}/restore',
+    handler: handler.restoreUserHandler,
+    options: {
+      auth: 'basicAndJwtStrategy',
+      pre: [
+        { method: checkPermission(['restore_user', 'manage_users']) }
+      ]
+    },
   },
 ];
 

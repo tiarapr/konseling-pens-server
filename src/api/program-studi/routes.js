@@ -1,10 +1,12 @@
+const checkPermission = require("../../middleware/checkPermission");
+
 const routes = (handler) => [
     {
         method: 'GET',
         path: '/program-studi',
         handler: handler.getAllProgramStudiHandler,
         options: {
-            auth: 'basicAndJwtStrategy',
+            auth: 'basic'
         },
     },
     {
@@ -13,6 +15,9 @@ const routes = (handler) => [
         handler: handler.getProgramStudiByIdHandler,
         options: {
             auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('view_program_studi_by_id', 'manage_program_studis') }
+            ]
         },
     },
     {
@@ -21,6 +26,9 @@ const routes = (handler) => [
         handler: handler.getProgramStudiByDepartementHandler,
         options: {
             auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('view_program_studi_by_departement_id', 'manage_program_studis') }
+            ]
         },
     },
     {
@@ -29,6 +37,9 @@ const routes = (handler) => [
         handler: handler.postProgramStudiHandler,
         options: {
             auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('create_program_studi', 'manage_program_studis') }
+            ]
         },
     },
     {
@@ -37,6 +48,9 @@ const routes = (handler) => [
         handler: handler.updateProgramStudiHandler,
         options: {
             auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('update_program_studi', 'manage_program_studis') }
+            ]
         },
     },
     {
@@ -45,6 +59,9 @@ const routes = (handler) => [
         handler: handler.deleteProgramStudiHandler,
         options: {
             auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('delete_program_studi', 'manage_program_studis') }
+            ]
         },
     },
 ];

@@ -1,6 +1,21 @@
 const { Pool } = require('pg');
+const { encrypt, decrypt } = require('../utils/encryption');
 const InvariantError = require('../exceptions/InvariantError');
 const NotFoundError = require('../exceptions/NotFoundError');
+
+function decryptCatatan(catatan) {
+  return {
+    ...catatan,
+    deskripsi_masalah: decrypt(catatan.deskripsi_masalah),
+    usaha: decrypt(catatan.usaha),
+    kendala: decrypt(catatan.kendala),
+    pencapaian: decrypt(catatan.pencapaian),
+    diagnosis: decrypt(catatan.diagnosis),
+    intervensi: decrypt(catatan.intervensi),
+    tindak_lanjut: decrypt(catatan.tindak_lanjut),
+    konseling_lanjutan: decrypt(catatan.konseling_lanjutan),
+  };
+}
 
 class CatatanKonselingService {
   constructor() {
@@ -9,7 +24,6 @@ class CatatanKonselingService {
     });
   }
 
-  // Menambahkan catatan konseling baru
   async create(payload) {
     const {
       konseling_id,
@@ -20,32 +34,33 @@ class CatatanKonselingService {
       diagnosis,
       intervensi,
       tindak_lanjut,
-      konseling_lanjutan,
-      created_by
+      konseling_lanjutan, // tidak perlu dienkripsi
+      created_by,
     } = payload;
 
+    // Pastikan bahwa konseling_lanjutan tidak dienkripsi
     const query = {
       text: `
-        INSERT INTO catatan_konseling (
-          konseling_id, deskripsi_masalah, usaha, kendala,
-          pencapaian, diagnosis, intervensi, tindak_lanjut,
-          konseling_lanjutan, created_by
-        ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-        )
-        RETURNING id
-      `,
+      INSERT INTO catatan_konseling (
+        konseling_id, deskripsi_masalah, usaha, kendala,
+        pencapaian, diagnosis, intervensi, tindak_lanjut,
+        konseling_lanjutan, created_by
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+      )
+      RETURNING *
+    `,
       values: [
         konseling_id,
-        deskripsi_masalah,
-        usaha,
-        kendala,
-        pencapaian,
-        diagnosis,
-        intervensi,
-        tindak_lanjut,
-        konseling_lanjutan,
-        created_by
+        encrypt(deskripsi_masalah),
+        encrypt(usaha),
+        encrypt(kendala),
+        encrypt(pencapaian),
+        encrypt(diagnosis),
+        encrypt(intervensi),
+        encrypt(tindak_lanjut),
+        konseling_lanjutan, // nilai asli tanpa enkripsi
+        created_by,
       ],
     };
 
@@ -58,24 +73,21 @@ class CatatanKonselingService {
     return result.rows[0].id;
   }
 
-  // Mengambil semua catatan konseling yang belum dihapus
   async getAll() {
     const query = {
       text: `
-          SELECT * FROM catatan_konseling
-          WHERE deleted_at IS NULL
-          ORDER BY created_at DESC
-        `,
+        SELECT * FROM catatan_konseling
+        WHERE deleted_at IS NULL
+        ORDER BY created_at DESC
+      `,
     };
 
     const result = await this._pool.query(query);
-    return result.rows;
+    return result.rows.map(decryptCatatan);
   }
 
-  // Mengambil semua catatan konseling berdasarkan konseling_id
   async getByKonselingId(konseling_id) {
-    // Ambil semua catatan konseling
-    const catatanQuery = {
+    const query = {
       text: `
         SELECT * FROM catatan_konseling
         WHERE konseling_id = $1 AND deleted_at IS NULL
@@ -83,72 +95,45 @@ class CatatanKonselingService {
       `,
       values: [konseling_id],
     };
-  
-    const catatanResult = await this._pool.query(catatanQuery);
-    const catatanList = catatanResult.rows;
-  
-    // Untuk setiap catatan, ambil topik dari konseling terkait
-    const detailedCatatan = await Promise.all(catatanList.map(async (catatan) => {
-      const topikQuery = {
-        text: `
-          SELECT t.id, t.name
-          FROM konseling_topik kt
-          JOIN topik t ON kt.topik_id = t.id
-          WHERE kt.konseling_id = $1 AND kt.deleted_at IS NULL
-        `,
-        values: [catatan.konseling_id],
-      };
-  
-      const topikResult = await this._pool.query(topikQuery);
-      return {
-        ...catatan,
-        topik: topikResult.rows, // list of topik
-      };
-    }));
-  
-    return detailedCatatan;
-  }  
 
-  // Mengambil catatan konseling berdasarkan ID
+    const result = await this._pool.query(query);
+    return result.rows.map(decryptCatatan);
+  }
+
   async getById(id) {
-    // Ambil catatan konseling terlebih dahulu
-    const catatanQuery = {
+    const query = {
       text: `
         SELECT * FROM catatan_konseling
         WHERE id = $1 AND deleted_at IS NULL
       `,
       values: [id],
     };
-  
-    const catatanResult = await this._pool.query(catatanQuery);
-  
-    if (!catatanResult.rows.length) {
+
+    const result = await this._pool.query(query);
+
+    if (!result.rows.length) {
       throw new NotFoundError('Catatan konseling tidak ditemukan');
     }
-  
-    const catatan = catatanResult.rows[0];
-  
-    // Ambil topik berdasarkan konseling_id
-    const topikQuery = {
-      text: `
-        SELECT t.id, t.name
-        FROM konseling_topik kt
-        JOIN topik t ON kt.topik_id = t.id
-        WHERE kt.konseling_id = $1 AND kt.deleted_at IS NULL
-      `,
-      values: [catatan.konseling_id],
-    };
-  
-    const topikResult = await this._pool.query(topikQuery);
-  
-    // Gabungkan catatan dan topik
-    return {
-      ...catatan,
-      topik: topikResult.rows,
-    };
-  }  
 
-  // Memperbarui catatan konseling berdasarkan ID
+    return decryptCatatan(result.rows[0]);
+  }
+
+  async isKonselingOwnedByUser(konselingId, userId) {
+    const query = {
+      text: `
+        SELECT jt.id
+        FROM konseling k
+        JOIN janji_temu jt ON k.janji_temu_id = jt.id
+        JOIN mahasiswa mhs ON jt.nrp = mhs.nrp
+        WHERE k.id = $1 AND jt.deleted_at IS NULL AND mhs.user_id = $2
+      `,
+      values: [konselingId, userId],
+    };
+
+    const result = await this._pool.query(query);
+    return result.rowCount > 0;
+  }
+
   async update(id, payload) {
     const {
       deskripsi_masalah,
@@ -159,19 +144,10 @@ class CatatanKonselingService {
       intervensi,
       tindak_lanjut,
       konseling_lanjutan,
-      updated_by
+      updated_by,
     } = payload;
 
     const existing = await this.getById(id);
-
-    const updatedDeskripsiMasalah = deskripsi_masalah ?? existing.deskripsi_masalah;
-    const updatedUsaha = usaha ?? existing.usaha;
-    const updatedKendala = kendala ?? existing.kendala;
-    const updatedPencapaian = pencapaian ?? existing.pencapaian;
-    const updatedDiagnosis = diagnosis ?? existing.diagnosis;
-    const updatedIntervensi = intervensi ?? existing.intervensi;
-    const updatedTindakLanjut = tindak_lanjut ?? existing.tindak_lanjut;
-    const updatedKonselingLanjutan = konseling_lanjutan ?? existing.konseling_lanjutan;
 
     const query = {
       text: `
@@ -188,19 +164,19 @@ class CatatanKonselingService {
           updated_by = $9,
           updated_at = CURRENT_TIMESTAMP
         WHERE id = $10 AND deleted_at IS NULL
-        RETURNING id
+        RETURNING *
       `,
       values: [
-        updatedDeskripsiMasalah,
-        updatedUsaha,
-        updatedKendala,
-        updatedPencapaian,
-        updatedDiagnosis,
-        updatedIntervensi,
-        updatedTindakLanjut,
-        updatedKonselingLanjutan,
+        encrypt(deskripsi_masalah ?? existing.deskripsi_masalah),
+        encrypt(usaha ?? existing.usaha),
+        encrypt(kendala ?? existing.kendala),
+        encrypt(pencapaian ?? existing.pencapaian),
+        encrypt(diagnosis ?? existing.diagnosis),
+        encrypt(intervensi ?? existing.intervensi),
+        encrypt(tindak_lanjut ?? existing.tindak_lanjut),
+        konseling_lanjutan ?? existing.konseling_lanjutan,
         updated_by,
-        id
+        id,
       ],
     };
 
@@ -213,7 +189,6 @@ class CatatanKonselingService {
     return result.rows[0].id;
   }
 
-  // Menghapus catatan konseling berdasarkan ID
   async delete(id, deleted_by) {
     const query = {
       text: `
@@ -221,7 +196,7 @@ class CatatanKonselingService {
         SET deleted_at = CURRENT_TIMESTAMP,
             deleted_by = $1
         WHERE id = $2 AND deleted_at IS NULL
-        RETURNING id
+        RETURNING *
       `,
       values: [deleted_by, id],
     };

@@ -51,9 +51,24 @@ class RoleService {
     return result.rows[0];
   }
 
+  async getRoleByName(roleName) {
+    const query = {
+      text: "SELECT id, name FROM role WHERE name = $1",
+      values: [roleName],
+    };
+
+    const result = await this._pool.query(query);
+
+    if (!result.rows.length) {
+      throw new NotFoundError("Role not found.");
+    }
+    
+    return result.rows[0];
+  }
+
   async updateRole(roleId, { role_name }) {
     const query = {
-      text: "UPDATE role SET name = $1 WHERE id = $2 RETURNING id, name",
+      text: "UPDATE role SET name = $1 WHERE id = $2 RETURNING *, name",
       values: [role_name, roleId],
     };
   
@@ -68,7 +83,7 @@ class RoleService {
 
   async deleteRole(roleId) {
     const query = {
-      text: "DELETE FROM role WHERE id = $1 RETURNING id",
+      text: "DELETE FROM role WHERE id = $1 RETURNING *",
       values: [roleId],
     };
 

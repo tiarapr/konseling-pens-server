@@ -32,7 +32,7 @@ class KonselingService {
           $1, $2, $3, $4, $5,
           $6, $7, $8, $9, $10
         )
-        RETURNING id`,
+        RETURNING *`,
       values: [
         janji_temu_id, konselor_profil_id, tanggal_konseling, jam_mulai, jam_selesai, lokasi,
         status_kehadiran, tanggal_konfirmasi, status_id, created_by,
@@ -45,41 +45,48 @@ class KonselingService {
       throw new InvariantError("Gagal menambahkan konseling");
     }
 
-    return result.rows[0].id;
+    return result.rows[0];
   }
 
   async getAll() {
     const query = {
       text: `
-        SELECT
-          k.id,
-          k.janji_temu_id,
-          jt.nrp,
-          m.nama_lengkap AS nama_mahasiswa,
-          k.konselor_profil_id,
-          kp.nama_lengkap AS nama_konselor,
-          s.name AS status,
-          k.tanggal_konseling,
-          k.jam_mulai,
-          k.jam_selesai,
-          k.lokasi,
-          k.status_kehadiran,
-          k.tanggal_konfirmasi,
-          k.status_id,
-          k.created_at,
-          k.created_by,
-          k.updated_at,
-          k.updated_by,
-          k.deleted_at,
-          k.deleted_by
-        FROM konseling k
-        JOIN janji_temu jt ON k.janji_temu_id = jt.id
-        JOIN mahasiswa m ON jt.nrp = m.nrp
-        JOIN konselor_profil kp ON k.konselor_profil_id = kp.id
-        JOIN status s ON k.status_id = s.id
-        WHERE k.deleted_at IS NULL
-        ORDER BY k.tanggal_konseling DESC, k.jam_mulai ASC;
-      `
+      SELECT
+        k.id,
+        k.janji_temu_id,
+        jt.nrp,
+        jt.tipe_konsultasi,
+        m.nama_lengkap AS nama_mahasiswa,
+        k.konselor_profil_id,
+        kp.nama_lengkap AS nama_konselor,
+        s.label AS status,
+        s.warna AS status_warna,
+        TO_CHAR(k.tanggal_konseling, 'YYYY-MM-DD') AS tanggal_konseling,
+        TO_CHAR(k.jam_mulai, 'HH24:MI') AS jam_mulai,
+        TO_CHAR(k.jam_selesai, 'HH24:MI') AS jam_selesai,
+        k.lokasi,
+        k.status_kehadiran,
+        k.tanggal_konfirmasi,
+        k.status_id,
+        k.created_at,
+        k.created_by,
+        k.updated_at,
+        k.updated_by,
+        k.deleted_at,
+        k.deleted_by,
+        r.rating AS nilai_rating,
+        r.ulasan,
+        r.created_at AS rating_created_at,
+        EXTRACT(EPOCH FROM (k.jam_selesai - k.jam_mulai)) / 60 AS durasi_menit
+      FROM konseling k
+      JOIN janji_temu jt ON k.janji_temu_id = jt.id
+      JOIN mahasiswa m ON jt.nrp = m.nrp
+      JOIN konselor_profil kp ON k.konselor_profil_id = kp.id
+      JOIN status s ON k.status_id = s.id
+      LEFT JOIN rating r ON k.id = r.konseling_id
+      WHERE k.deleted_at IS NULL
+      ORDER BY k.tanggal_konseling DESC, k.jam_mulai ASC;
+    `
     };
 
     const result = await this._pool.query(query);
@@ -87,6 +94,7 @@ class KonselingService {
     return result.rows.map(row => ({
       id: row.id,
       janji_temu_id: row.janji_temu_id,
+      tipe_konsultasi: row.tipe_konsultasi,
       mahasiswa: row.nama_mahasiswa,
       konselor: row.nama_konselor,
       tanggal_konseling: row.tanggal_konseling,
@@ -95,7 +103,19 @@ class KonselingService {
       lokasi: row.lokasi,
       status_kehadiran: row.status_kehadiran,
       tanggal_konfirmasi: row.tanggal_konfirmasi,
-      status: row.status,
+      status: {
+        id: row.status_id,
+        name: row.status,
+        warna: row.status_warna,
+      },
+      rating: row.nilai_rating
+        ? {
+          nilai: row.nilai_rating,
+          ulasan: row.ulasan,
+          created_at: row.rating_created_at,
+        }
+        : null,
+      durasi: row.durasi_menit ? parseInt(row.durasi_menit) : null, // durasi dalam menit (integer)
       created_at: row.created_at,
       created_by: row.created_by,
       updated_at: row.updated_at,
@@ -108,43 +128,65 @@ class KonselingService {
   async getById(id) {
     const query = {
       text: `
-        SELECT
-          k.id,
-          k.janji_temu_id,
-          jt.nomor_tiket,
-          jt.nrp,
-          jt.tipe_konsultasi,
-                    jt.jadwal_utama_tanggal,
-                    jt.jadwal_utama_jam_mulai,
-                    jt.jadwal_utama_jam_selesai,
-                    jt.jadwal_alternatif_tanggal,
-                    jt.jadwal_alternatif_jam_mulai,
-                    jt.jadwal_alternatif_jam_selesai,
-                    jt.tanggal_pengajuan,
-          m.nama_lengkap AS nama_mahasiswa,
-          k.konselor_profil_id,
-          kp.nama_lengkap AS nama_konselor,
-          s.name AS status,
-          k.tanggal_konseling,
-          k.jam_mulai,
-          k.jam_selesai,
-          k.lokasi,
-          k.status_kehadiran,
-          k.tanggal_konfirmasi,
-          k.status_id,
-          k.created_at,
-          k.created_by,
-          k.updated_at,
-          k.updated_by,
-          k.deleted_at,
-          k.deleted_by
-        FROM konseling k
-        JOIN janji_temu jt ON k.janji_temu_id = jt.id
-        JOIN mahasiswa m ON jt.nrp = m.nrp
-        JOIN konselor_profil kp ON k.konselor_profil_id = kp.id
-        JOIN status s ON k.status_id = s.id
-        WHERE k.id = $1 AND k.deleted_at IS NULL
-      `,
+      SELECT
+  k.id,
+  k.janji_temu_id,
+  jt.nomor_tiket,
+  jt.nrp,
+  jt.tipe_konsultasi,
+  jt.jadwal_utama_tanggal,
+  jt.jadwal_utama_jam_mulai,
+  jt.jadwal_utama_jam_selesai,
+  jt.jadwal_alternatif_tanggal,
+  jt.jadwal_alternatif_jam_mulai,
+  jt.jadwal_alternatif_jam_selesai,
+  jt.tanggal_pengajuan,
+  m.nama_lengkap AS nama_mahasiswa,
+  k.konselor_profil_id,
+  kp.nama_lengkap AS nama_konselor,
+  s.label AS status,
+  s.warna AS status_warna,
+  k.tanggal_konseling,
+  k.jam_mulai,
+  k.jam_selesai,
+  k.lokasi,
+  k.status_kehadiran,
+  k.tanggal_konfirmasi,
+  k.status_id,
+  k.created_at,
+  k.created_by,
+  k.updated_at,
+  k.updated_by,
+  k.deleted_at,
+  k.deleted_by,
+  r.id as rating_id,
+  r.rating as nilai_rating,
+  r.ulasan,
+  r.created_at as rating_created_at,
+
+  -- Hitung pertemuan ke berapa berdasarkan sesi mahasiswa
+  (
+    SELECT COUNT(*)
+    FROM konseling k2
+    JOIN janji_temu jt2 ON k2.janji_temu_id = jt2.id
+    WHERE jt2.nrp = jt.nrp
+      AND k2.deleted_at IS NULL
+      AND (
+        k2.tanggal_konseling < k.tanggal_konseling
+        OR (k2.tanggal_konseling = k.tanggal_konseling AND k2.jam_mulai <= k.jam_mulai)
+      )
+  ) AS pertemuan_ke,
+
+  EXTRACT(EPOCH FROM (k.jam_selesai - k.jam_mulai)) / 60 AS durasi_menit -- durasi dalam menit
+
+FROM konseling k
+JOIN janji_temu jt ON k.janji_temu_id = jt.id
+JOIN mahasiswa m ON jt.nrp = m.nrp
+JOIN konselor_profil kp ON k.konselor_profil_id = kp.id
+JOIN status s ON k.status_id = s.id
+LEFT JOIN rating r ON k.id = r.konseling_id
+WHERE k.id = $1 AND k.deleted_at IS NULL
+    `,
       values: [id],
     };
 
@@ -155,6 +197,7 @@ class KonselingService {
     }
 
     const row = result.rows[0];
+
     return {
       id: row.id,
       janji_temu: {
@@ -187,7 +230,18 @@ class KonselingService {
       status: {
         id: row.status_id,
         name: row.status,
+        warna: row.status_warna,
       },
+      rating: row.rating_id
+        ? {
+          id: row.rating_id,
+          nilai: row.nilai_rating,
+          ulasan: row.ulasan,
+          created_at: row.rating_created_at,
+        }
+        : null,
+      pertemuan_ke: row.pertemuan_ke, // Ditambahkan
+      durasi: row.durasi, // Ditambahkan
       created_at: row.created_at,
       created_by: row.created_by,
       updated_at: row.updated_at,
@@ -195,6 +249,167 @@ class KonselingService {
       deleted_at: row.deleted_at,
       deleted_by: row.deleted_by,
     };
+  }
+
+  async getByNrp(nrp) {
+    const query = {
+      text: `
+      SELECT
+        k.id,
+        k.janji_temu_id,
+        jt.nrp,
+        jt.tipe_konsultasi,
+        m.nama_lengkap AS nama_mahasiswa,
+        k.konselor_profil_id,
+        kp.nama_lengkap AS nama_konselor,
+        s.label AS status,
+        s.warna AS status_warna,
+        TO_CHAR(k.tanggal_konseling, 'YYYY-MM-DD') AS tanggal_konseling,
+        TO_CHAR(k.jam_mulai, 'HH24:MI') AS jam_mulai,
+        TO_CHAR(k.jam_selesai, 'HH24:MI') AS jam_selesai,
+        k.lokasi,
+        k.status_kehadiran,
+        k.tanggal_konfirmasi,
+        k.status_id,
+        k.created_at,
+        k.created_by,
+        k.updated_at,
+        k.updated_by,
+        k.deleted_at,
+        k.deleted_by,
+        r.rating AS nilai_rating,
+        r.ulasan,
+        r.created_at AS rating_created_at,
+        EXTRACT(EPOCH FROM (k.jam_selesai - k.jam_mulai)) / 60 AS durasi_menit
+      FROM konseling k
+      JOIN janji_temu jt ON k.janji_temu_id = jt.id
+      JOIN mahasiswa m ON jt.nrp = m.nrp
+      LEFT JOIN konselor_profil kp ON k.konselor_profil_id = kp.id
+      JOIN status s ON k.status_id = s.id
+      LEFT JOIN rating r ON k.id = r.konseling_id
+      WHERE jt.nrp = $1 AND k.deleted_at IS NULL
+      ORDER BY k.tanggal_konseling DESC, k.jam_mulai ASC
+    `,
+      values: [nrp],
+    };
+
+    const result = await this._pool.query(query);
+
+    return result.rows.map(row => ({
+      id: row.id,
+      janji_temu_id: row.janji_temu_id,
+      tipe_konsultasi: row.tipe_konsultasi,
+      mahasiswa: row.nama_mahasiswa,
+      konselor: row.nama_konselor,
+      tanggal_konseling: row.tanggal_konseling,
+      jam_mulai: row.jam_mulai,
+      jam_selesai: row.jam_selesai,
+      lokasi: row.lokasi,
+      status_kehadiran: row.status_kehadiran,
+      tanggal_konfirmasi: row.tanggal_konfirmasi,
+      status: {
+        id: row.status_id,
+        name: row.status,
+        warna: row.status_warna,
+      },
+      rating: row.nilai_rating
+        ? {
+          nilai: row.nilai_rating,
+          ulasan: row.ulasan,
+          created_at: row.rating_created_at,
+        }
+        : null,
+      durasi: row.durasi_menit ? parseInt(row.durasi_menit) : null,
+      created_at: row.created_at,
+      created_by: row.created_by,
+      updated_at: row.updated_at,
+      updated_by: row.updated_by,
+      deleted_at: row.deleted_at,
+      deleted_by: row.deleted_by,
+    }));
+  }
+
+  async getByKonselorId(konselorProfilId) {
+    const query = {
+      text: `
+      SELECT
+        k.id,
+        k.janji_temu_id,
+        jt.nrp,
+        jt.tipe_konsultasi,
+        m.nama_lengkap AS nama_mahasiswa,
+        m.id AS id_mahasiswa,
+        m.nrp AS nrp_mahasiswa,
+        k.konselor_profil_id,
+        kp.nama_lengkap AS nama_konselor,
+        s.label AS status,
+        s.warna AS status_warna,
+        TO_CHAR(k.tanggal_konseling, 'YYYY-MM-DD') AS tanggal_konseling,
+        TO_CHAR(k.jam_mulai, 'HH24:MI') AS jam_mulai,
+        TO_CHAR(k.jam_selesai, 'HH24:MI') AS jam_selesai,
+        k.lokasi,
+        k.status_kehadiran,
+        k.tanggal_konfirmasi,
+        k.status_id,
+        k.created_at,
+        k.created_by,
+        k.updated_at,
+        k.updated_by,
+        k.deleted_at,
+        k.deleted_by,
+        r.rating AS nilai_rating,
+        r.ulasan,
+        r.created_at AS rating_created_at,
+        EXTRACT(EPOCH FROM (k.jam_selesai - k.jam_mulai)) / 60 AS durasi_menit
+      FROM konseling k
+      JOIN janji_temu jt ON k.janji_temu_id = jt.id
+      JOIN mahasiswa m ON jt.nrp = m.nrp
+      JOIN konselor_profil kp ON k.konselor_profil_id = kp.id
+      JOIN status s ON k.status_id = s.id
+      LEFT JOIN rating r ON k.id = r.konseling_id
+      WHERE k.konselor_profil_id = $1 AND k.deleted_at IS NULL
+      ORDER BY k.tanggal_konseling DESC, k.jam_mulai ASC;
+    `
+    };
+
+    const result = await this._pool.query(query, [konselorProfilId]);
+
+    return result.rows.map(row => ({
+      id: row.id,
+      janji_temu_id: row.janji_temu_id,
+      tipe_konsultasi: row.tipe_konsultasi,
+      mahasiswa: {
+        id: row.id_mahasiswa,
+        nama: row.nama_mahasiswa,
+        nrp: row.nrp_mahasiswa
+      },
+      konselor: row.nama_konselor,
+      tanggal_konseling: row.tanggal_konseling,
+      jam_mulai: row.jam_mulai,
+      jam_selesai: row.jam_selesai,
+      lokasi: row.lokasi,
+      status_kehadiran: row.status_kehadiran,
+      tanggal_konfirmasi: row.tanggal_konfirmasi,
+      status: {
+        id: row.status_id,
+        name: row.status,
+        warna: row.status_warna,
+      },
+      rating: row.nilai_rating
+        ? {
+          nilai: row.nilai_rating,
+          ulasan: row.ulasan,
+          created_at: row.rating_created_at,
+        }
+        : null,
+      durasi: row.durasi_menit ? parseInt(row.durasi_menit) : null, // durasi dalam menit (integer)
+      created_at: row.created_at,
+      created_by: row.created_by,
+      updated_at: row.updated_at,
+      updated_by: row.updated_by,
+      deleted_at: row.deleted_at,
+      deleted_by: row.deleted_by,
+    }));
   }
 
   async update(id, payload) {
@@ -237,7 +452,7 @@ class KonselingService {
           updated_by = $9,
           updated_at = CURRENT_TIMESTAMP
         WHERE id = $10 AND deleted_at IS NULL
-        RETURNING id`,
+        RETURNING *`,
       values: [
         updatedTanggal,
         updatedJamMulai,
@@ -270,7 +485,7 @@ class KonselingService {
           updated_by = $2,
           updated_at = CURRENT_TIMESTAMP
         WHERE id = $3 AND deleted_at IS NULL
-        RETURNING id
+        RETURNING *
       `,
       values: [status_id, updated_by, id],
     };
@@ -300,7 +515,7 @@ class KonselingService {
           updated_by = $4,
           updated_at = CURRENT_TIMESTAMP
         WHERE id = $5 AND deleted_at IS NULL
-        RETURNING id
+        RETURNING *
       `,
       values: [
         status_kehadiran,
@@ -326,7 +541,7 @@ class KonselingService {
         SET deleted_at = CURRENT_TIMESTAMP,
             deleted_by = $1
         WHERE id = $2 AND deleted_at IS NULL
-        RETURNING id`,
+        RETURNING *`,
       values: [deleted_by, id],
     };
 

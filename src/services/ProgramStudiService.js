@@ -33,7 +33,12 @@ class ProgramStudiService {
 
   async getAll() {
     const query = {
-      text: `SELECT * FROM program_studi WHERE deleted_at IS NULL`,
+      text: `
+      SELECT ps.*, d.name AS nama_departemen
+      FROM program_studi ps
+      LEFT JOIN departement d ON ps.departement_id = d.id
+      WHERE ps.deleted_at IS NULL
+    `,
     };
 
     const result = await this._pool.query(query);

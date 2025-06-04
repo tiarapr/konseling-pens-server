@@ -11,12 +11,17 @@ exports.shorthands = undefined;
 exports.up = (pgm) => {
     pgm.createTable("user", {
         id: {
-          type: "UUID",
-          primaryKey: true,
-          default: pgm.func("gen_random_uuid()"),
+            type: "UUID",
+            primaryKey: true,
+            default: pgm.func("gen_random_uuid()"),
         },
         email: {
-            type: "varchar(255)",
+            type: "VARCHAR(255)",
+            notNull: true,
+            unique: true
+        },
+        phone_number: {
+            type: "VARCHAR(15)",
             notNull: true,
             unique: true
         },
@@ -30,24 +35,59 @@ exports.up = (pgm) => {
             default: false,
         },
         verified_at: {
-            type: "timestamp",
+            type: "TIMESTAMP",
             notNull: false,
         },
         created_at: {
-            type: "timestamp",
+            type: "TIMESTAMP",
             notNull: true,
-            default: pgm.func("current_timestamp")
+            default: pgm.func("CURRENT_TIMESTAMP")
+        },
+        created_by: {
+            type: "UUID",
+            references: '"user"(id)',
+            onUpdate: "CASCADE",
+            notNull: false,
         },
         updated_at: {
-            type: "timestamp",
-            notNull: false,
-            default: null
+            type: "TIMESTAMP",
+            default: null,
+        },
+        updated_by: {
+            type: "UUID",
+            references: '"user"(id)',
+            onUpdate: "CASCADE",
         },
         deleted_at: {
             type: "timestamp",
-            notNull: false,
+            default: null,
+        },
+        deleted_by: {
+            type: "UUID",
+            references: '"user"(id)',
+            onUpdate: "CASCADE",
+        },
+        restored_at: {
+            type: "timestamp",
             default: null
         },
+        restored_by: {
+            type: "UUID",
+            references: '"user"(id)',
+            onUpdate: "CASCADE",
+        },
+    });
+
+    pgm.createIndex('user', 'created_at');
+    pgm.createIndex('user', 'deleted_at');
+    pgm.createIndex("user", "is_verified");
+
+    pgm.addConstraint('user', 'email_format_check', {
+        check: "email ~ '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$'",
+    });
+
+    pgm.addConstraint('user', 'phone_format_check', {
+        check: "phone_number ~ '^[1-9][0-9]{4,14}$'",
     });
 };
 

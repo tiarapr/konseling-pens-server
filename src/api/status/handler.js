@@ -5,7 +5,6 @@ class StatusHandler {
         this._service = service;
         this._validator = validator;
 
-        // Bind methods to ensure correct 'this' context
         this.getAllStatusHandler = this.getAllStatusHandler.bind(this);
         this.getStatusByIdHandler = this.getStatusByIdHandler.bind(this);
         this.postStatusHandler = this.postStatusHandler.bind(this);
@@ -13,7 +12,6 @@ class StatusHandler {
         this.deleteStatusHandler = this.deleteStatusHandler.bind(this);
     }
 
-    // Get all status records
     async getAllStatusHandler(request, h) {
         try {
             const data = await this._service.getAll();
@@ -28,7 +26,6 @@ class StatusHandler {
         }
     }
 
-    // Get status by ID
     async getStatusByIdHandler(request, h) {
         try {
             const { id } = request.params;
@@ -44,15 +41,18 @@ class StatusHandler {
         }
     }
 
-    // Create new status
     async postStatusHandler(request, h) {
         try {
             this._validator.validateCreatePayload(request.payload);
-            const { name, tipe_status_id } = request.payload;
+            const { kode_status, label, warna, urutan, is_active } = request.payload;
 
-            const createdBy = request.auth.credentials.jwt.user.id;
-
-            const result = await this._service.create({ name, tipe_status_id, created_by: createdBy });
+            const result = await this._service.create({
+                kode_status,
+                label,
+                warna,
+                urutan,
+                is_active,
+            });
 
             const response = h.response({
                 status: 'success',
@@ -61,23 +61,26 @@ class StatusHandler {
                     status: result,
                 },
             });
-            response.code(201); // HTTP status code for created
+            response.code(201);
             return response;
         } catch (error) {
             return this._handleError(h, error);
         }
     }
 
-    // Update status by ID
     async updateStatusHandler(request, h) {
         try {
             const { id } = request.params;
             this._validator.validateUpdatePayload(request.payload);
-            const { name, tipe_status_id } = request.payload;
+            const { kode_status, label, warna, urutan, is_active } = request.payload;
 
-            const updatedBy = request.auth.credentials.jwt.user.id;
-
-            const result = await this._service.update(id, { name, tipe_status_id, updated_by: updatedBy });
+            const result = await this._service.update(id, {
+                kode_status,
+                label,
+                warna,
+                urutan,
+                is_active,
+            });
 
             return {
                 status: 'success',
@@ -91,14 +94,11 @@ class StatusHandler {
         }
     }
 
-    // Soft delete status by ID
     async deleteStatusHandler(request, h) {
         try {
             const { id } = request.params;
-            
-            const deletedBy = request.auth.credentials.jwt.user.id;
 
-            const result = await this._service.softDelete(id, deletedBy);
+            const result = await this._service.delete(id); // assuming hard delete as per service
 
             return {
                 status: 'success',
@@ -112,7 +112,6 @@ class StatusHandler {
         }
     }
 
-    // Handle ClientError responses
     _handleError(h, error) {
         if (error instanceof ClientError) {
             const response = h.response({
@@ -125,7 +124,6 @@ class StatusHandler {
         return this._handleServerError(h, error);
     }
 
-    // Handle unexpected server errors
     _handleServerError(h, error) {
         console.error(error);
         const response = h.response({

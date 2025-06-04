@@ -1,10 +1,26 @@
+const checkPermission = require("../../middleware/checkPermission");
+
 const routes = (handler) => [
+    {
+        method: 'POST',
+        path: '/konseling',
+        handler: handler.postKonselingHandler,
+        options: {
+            auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('create_konseling', 'manage_konselings') }
+            ]
+        },
+    },
     {
         method: 'GET',
         path: '/konseling',
         handler: handler.getAllKonselingHandler,
         options: {
             auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('view_all_konseling', 'manage_konselings') }
+            ]
         },
     },
     {
@@ -13,12 +29,25 @@ const routes = (handler) => [
         handler: handler.getKonselingByIdHandler,
         options: {
             auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('view_konseling_by_id', 'manage_konselings') }
+            ]
         },
     },
+    // MILIK KONSELOR
     {
-        method: 'POST',
-        path: '/konseling',
-        handler: handler.postKonselingHandler,
+        method: 'GET',
+        path: '/konseling/my',
+        handler: handler.getKonselingByKonselorIdHandler,
+        options: {
+            auth: 'basicAndJwtStrategy',
+        },
+    },
+    // DATA KONSELING MILIK MAHASISWA
+    {
+        method: 'GET',
+        path: '/konseling/me',
+        handler: handler.getMyKonselingHandler,
         options: {
             auth: 'basicAndJwtStrategy',
         },
@@ -29,6 +58,20 @@ const routes = (handler) => [
         handler: handler.updateKonselingHandler,
         options: {
             auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('update_konseling', 'manage_konselings') }
+            ]
+        },
+    },
+    {
+        method: 'PUT',
+        path: '/konseling/{id}/reschedule',
+        handler: handler.rescheduleKonselingHandler,
+        options: {
+            auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('update_konseling', 'manage_konselings') }
+            ]
         },
     },
     {
@@ -37,6 +80,9 @@ const routes = (handler) => [
         handler: handler.updateStatusKonselingHandler,
         options: {
             auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('update_status_konseling', 'manage_konselings') }
+            ]
         },
     },
     {
@@ -53,6 +99,9 @@ const routes = (handler) => [
         handler: handler.deleteKonselingHandler,
         options: {
             auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('delete_konseling', 'manage_konselings') }
+            ]
         },
     },
 ];

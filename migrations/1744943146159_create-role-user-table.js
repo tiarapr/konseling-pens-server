@@ -11,7 +11,7 @@ exports.shorthands = undefined;
 exports.up = (pgm) => {
     pgm.createTable("role_user", {
         user_id: {
-             type: "UUID",
+            type: "UUID",
             notNull: true,
             references: '"user"(id)',
             onUpdate: "CASCADE",
@@ -21,6 +21,44 @@ exports.up = (pgm) => {
             notNull: true,
             references: "role(id)",
             onDelete: 'SET NULL',
+            onUpdate: 'CASCADE',
+        },
+        created_at: {
+            type: "TIMESTAMP",
+            notNull: true,
+            default: pgm.func("current_TIMESTAMP")
+        },
+        created_by: {
+            type: "UUID",
+            references: '"user"(id)',
+            onUpdate: "CASCADE",
+            notNull: false,
+        },
+        updated_at: {
+            type: "TIMESTAMP",
+            default: null,
+        },
+        updated_by: {
+            type: "UUID",
+            references: '"user"(id)',
+            onUpdate: "CASCADE",
+        },
+        deleted_at: {
+            type: "TIMESTAMP",
+            default: null,
+        },
+        deleted_by: {
+            type: "UUID",
+            references: '"user"(id)',
+            onUpdate: "CASCADE",
+        },
+        restored_at: {
+            type: "TIMESTAMP",
+            default: null
+        },
+        restored_by: {
+            type: "UUID",
+            references: '"user"(id)',
             onUpdate: 'CASCADE',
         },
     });

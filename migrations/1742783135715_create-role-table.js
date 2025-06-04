@@ -11,15 +11,24 @@ exports.shorthands = undefined;
 exports.up = (pgm) => {
     pgm.createTable("role", {
         id: {
-          type: "UUID",
-          primaryKey: true,
-          default: pgm.func("gen_random_uuid()"),
+            type: "UUID",
+            primaryKey: true,
+            default: pgm.func("gen_random_uuid()"),
         },
-        name: { 
-            type: "VARCHAR(50)", 
-            notNull: true 
+        name: {
+            type: "VARCHAR(50)",
+            notNull: true
         },
     });
+
+    pgm.sql(`
+        INSERT INTO role (name) VALUES
+        ('master'),
+        ('kemahasiswaan'),
+        ('admin'),
+        ('konselor'),
+        ('mahasiswa');
+    `);
 };
 
 /**
@@ -27,6 +36,6 @@ exports.up = (pgm) => {
  * @param run {() => void | undefined}
  * @returns {Promise<void> | void}
  */
-exports.down = (pgm) => { 
+exports.down = (pgm) => {
     pgm.dropTable('role');
 };

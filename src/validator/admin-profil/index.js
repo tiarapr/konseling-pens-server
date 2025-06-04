@@ -1,6 +1,7 @@
 const InvariantError = require('../../exceptions/InvariantError');
 const {
   CreateAdminAccountPayloadSchema,
+  UpdateAdminAccountPayloadSchema,
   CreateAdminProfilPayloadSchema,
   UpdateAdminProfilPayloadSchema,
 } = require('./schema');
@@ -12,7 +13,14 @@ const AdminProfilValidator = {
       throw new InvariantError(validationResult.error.message);
     }
   },
-  
+
+  validateUpdateAccountPayload: (payload) => {
+    const validationResult = UpdateAdminAccountPayloadSchema.validate(payload);
+    if (validationResult.error) {
+      throw new InvariantError(validationResult.error.message);
+    }
+  },
+
   validateCreateProfilePayload: (payload) => {
     const validationResult = CreateAdminProfilPayloadSchema.validate(payload);
     if (validationResult.error) {

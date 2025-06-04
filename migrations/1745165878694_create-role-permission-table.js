@@ -11,9 +11,9 @@ exports.shorthands = undefined;
 exports.up = (pgm) => {
     pgm.createTable("role_permission", {
         id: {
-          type: "UUID",
-          primaryKey: true,
-          default: pgm.func("gen_random_uuid()"),
+            type: "UUID",
+            primaryKey: true,
+            default: pgm.func("gen_random_uuid()"),
         },
         role_id: {
             type: "UUID",
@@ -30,39 +30,57 @@ exports.up = (pgm) => {
             onUpdate: "CASCADE",
         },
         created_at: {
-            type: "timestamp",
+            type: "TIMESTAMP",
             notNull: true,
-            default: pgm.func("current_timestamp"),
+            default: pgm.func("current_TIMESTAMP")
         },
         created_by: {
             type: "UUID",
-            notNull: true,
             references: '"user"(id)',
             onUpdate: "CASCADE",
+            notNull: false,
         },
         updated_at: {
-            type: "timestamp",
-            notNull: false,
+            type: "TIMESTAMP",
             default: null,
         },
         updated_by: {
             type: "UUID",
-            notNull: false,
             references: '"user"(id)',
             onUpdate: "CASCADE",
         },
         deleted_at: {
-            type: "timestamp",
-            notNull: false,
+            type: "TIMESTAMP",
             default: null,
         },
         deleted_by: {
             type: "UUID",
-            notNull: false,
             references: '"user"(id)',
             onUpdate: "CASCADE",
         },
     });
+
+    pgm.sql(`
+        INSERT INTO role_permission (role_id, permission_id)
+        SELECT
+            r.id,
+            p.id
+        FROM role r
+        JOIN permission p ON p.name IN 
+        (
+            'manage_users', 
+            'manage_roles', 
+            'manage_permissions',
+            'manage_role_permissions',
+            'manage_program_studis',
+            'manage_departements',
+            'manage_admins',
+            'manage_konselors',
+            'manage_kemahasiswaans',
+            'manage_mahasiswas'
+        )
+        WHERE r.name = 'master';
+    `);
 };
 
 /**

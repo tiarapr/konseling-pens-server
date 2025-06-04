@@ -1,250 +1,371 @@
 const ClientError = require('../../exceptions/ClientError');
 const NotFoundError = require('../../exceptions/NotFoundError');
+const Boom = require('@hapi/boom');
 
 class MahasiswaHandler {
-    constructor(service, validator) {
+    constructor(service, statusVerifikasiService, userService, konselorProfileService, roleService, fileStorageService, validator, emailVerificationService, mailSender) {
         this._service = service;
+        this._statusVerifikasiService = statusVerifikasiService;
+        this._userService = userService;
+        this._roleService = roleService;
+        this._konselorProfileService = konselorProfileService;
+        this._fileStorageService = fileStorageService;
         this._validator = validator;
+        this._emailVerificationService = emailVerificationService;
+        this._mailSender = mailSender;
 
-        // Bind methods
         this.getAllMahasiswaHandler = this.getAllMahasiswaHandler.bind(this);
         this.getMahasiswaByIdHandler = this.getMahasiswaByIdHandler.bind(this);
         this.getMahasiswaByNrpHandler = this.getMahasiswaByNrpHandler.bind(this);
+        this.getOwnMahasiswaHandler = this.getOwnMahasiswaHandler.bind(this);
+        this.getMahasiswaWithJanjiTemuHandler = this.getMahasiswaWithJanjiTemuHandler.bind(this);
+        this.getMahasiswaByKonselorIdHandler = this.getMahasiswaByKonselorIdHandler.bind(this);
         this.postMahasiswaHandler = this.postMahasiswaHandler.bind(this);
+        this.verifyMahasiswaHandler = this.verifyMahasiswaHandler.bind(this);
+        this.requestReVerificationHandler = this.requestReVerificationHandler.bind(this);
         this.updateMahasiswaHandler = this.updateMahasiswaHandler.bind(this);
         this.deleteMahasiswaHandler = this.deleteMahasiswaHandler.bind(this);
         this.uploadKtmHandler = this.uploadKtmHandler.bind(this);
         this.getRekamMedisByNrpHandler = this.getRekamMedisByNrpHandler.bind(this);
     }
 
-    // Get all mahasiswa records
+    async postMahasiswaHandler(request, h) {
+        const client = await this._service.getDatabaseClient();
+
+        try {
+            const { payload } = request;
+            const { ktm_url: file, ...data } = payload;
+
+            // Validasi data tanpa ktm_url (karena file)
+            this._validator.validateCreatePayload(data);
+
+            await client.query('BEGIN');
+
+            // Simpan data user dan mahasiswa tanpa ktm_url dulu
+            const role = await this._roleService.getRoleByName('mahasiswa');
+            const userId = await this._userService.addUser(client, {
+                email: data.email,
+                phoneNumber: data.phoneNumber,
+                password: data.password,
+                isVerified: false,
+                roleId: role.id,
+            });
+
+            const status = await this._statusVerifikasiService.getByKode('menunggu_verifikasi');
+            const statusVerifikasiId = status.id;
+
+            const mahasiswa = await this._service.create(client, {
+                nrp: data.nrp,
+                nama_lengkap: data.nama_lengkap,
+                program_studi_id: data.program_studi_id,
+                tanggal_lahir: data.tanggal_lahir,
+                jenis_kelamin: data.jenis_kelamin,
+                user_id: userId,
+                status_verifikasi_id: statusVerifikasiId,
+                ktm_url: 'dummy.jpg',
+            });
+
+            // Setelah data berhasil disimpan, upload file
+            const { url: ktmUrl } = await this._fileStorageService.saveKtmFile(file);
+
+            // Update mahasiswa record dengan URL file ktm_url
+            await this._service.updateKtm(client, mahasiswa.id, ktmUrl);
+
+            // Kirim email verifikasi
+            const token = await this._emailVerificationService.generateToken(client, userId);
+            await this._mailSender.sendVerificationEmail(data.email, token);
+
+            await client.query('COMMIT');
+
+            return h.response({
+                status: 'success',
+                message: 'Registrasi berhasil. Silakan cek email untuk verifikasi.',
+                data: { mahasiswa },
+            }).code(201);
+
+        } catch (error) {
+            await client.query('ROLLBACK').catch(() => { });
+            return this._handleError(h, error);
+        } finally {
+            client.release();
+        }
+    }
+
     async getAllMahasiswaHandler(request, h) {
         try {
             const data = await this._service.getAll();
             return {
                 status: 'success',
-                data: {
-                    mahasiswa: data,
-                },
+                data: { mahasiswa: data },
             };
         } catch (error) {
             return this._handleServerError(h, error);
         }
     }
 
-    // Get mahasiswa by ID
     async getMahasiswaByIdHandler(request, h) {
         try {
             const { id } = request.params;
             const data = await this._service.getById(id);
             return {
                 status: 'success',
-                data: {
-                    mahasiswa: data,
-                },
+                data: { mahasiswa: data },
             };
         } catch (error) {
             return this._handleError(h, error);
         }
     }
 
-    // Get mahasiswa by NRP
     async getMahasiswaByNrpHandler(request, h) {
         try {
             const { nrp } = request.params;
             const data = await this._service.getByNrp(nrp);
             return {
                 status: 'success',
-                data: {
-                    mahasiswa: data,
-                },
+                data: { mahasiswa: data },
             };
         } catch (error) {
             return this._handleError(h, error);
         }
     }
 
-    // Create new mahasiswa
-    async postMahasiswaHandler(request, h) {
+    async getOwnMahasiswaHandler(request, h) {
         try {
-            const payload = request.payload;
+            const userId = request.auth.credentials.jwt.user.id;
+            const mahasiswa = await this._service.getByUserId(userId);
 
-            // Ambil file KTM dari form-data
-            const file = payload.ktm_url;
+            if (!mahasiswa) {
+                throw new NotFoundError('Profil mahasiswa tidak ditemukan');
+            }
 
-            // Simpan file KTM dan dapatkan URL-nya
-            const { url: ktmUrl } = await this._service.saveKtmFile(file);
+            return {
+                status: 'success',
+                data: { mahasiswa },
+            };
+        } catch (error) {
+            return this._handleError(h, error);
+        }
+    }
 
-            // Validasi data lain (pastikan hanya data JSON yang divalidasi)
-            this._validator.validateCreatePayload({
-                nrp: payload.nrp,
-                nama_lengkap: payload.nama_lengkap,
-                program_studi_id: payload.program_studi_id,
-                tanggal_lahir: payload.tanggal_lahir,
-                jenis_kelamin: payload.jenis_kelamin,
-                no_telepon: payload.no_telepon,
-                ktm_url: ktmUrl, // validasi ktm_url hasil upload
-                user_id: payload.user_id,
-                status_id: payload.status_id,
-                created_by: payload.created_by,
-            });
+    async getMahasiswaWithJanjiTemuHandler(request, h) {
+        try {
+            const data = await this._service.getMahasiswaWithJanjiTemu();
+            return {
+                status: 'success',
+                data: { mahasiswa: data },
+            };
+        } catch (error) {
+            return this._handleError(h, error);
+        }
+    }
 
-            // Simpan data ke database
-            const result = await this._service.create({
-                nrp: payload.nrp,
-                nama_lengkap: payload.nama_lengkap,
-                program_studi_id: payload.program_studi_id,
-                tanggal_lahir: payload.tanggal_lahir,
-                jenis_kelamin: payload.jenis_kelamin,
-                no_telepon: payload.no_telepon,
-                ktm_url: ktmUrl,
-                user_id: payload.user_id,
-                status_id: payload.status_id,
-                created_by: payload.created_by,
-            });
+    async verifyMahasiswaHandler(request, h) {
+        try {
+            const { id } = request.params;
+            const { payload } = request;
+            const verifiedBy = request.auth.credentials.jwt.user.id;
+
+            this._validator.validateVerifyPayload(payload);
+
+            // Cek apakah status baru adalah "terverifikasi"
+            const statusVerifikasi = await this._statusVerifikasiService.getById(payload.status_verifikasi_id);
+            const isTerverifikasi = statusVerifikasi.kode === 'terverifikasi';
+
+            const updateData = {
+                status_verifikasi_id: payload.status_verifikasi_id,
+                // Jika status terverifikasi, set catatan menjadi null
+                catatan_verifikasi: isTerverifikasi ? null : payload.catatan_verifikasi,
+                verified_by: verifiedBy,
+            };
+
+            const result = await this._service.verifyMahasiswa(id, updateData);
+
+            return {
+                status: 'success',
+                message: 'Mahasiswa verification status updated successfully',
+                data: { mahasiswa: result },
+            };
+        } catch (error) {
+            return this._handleError(h, error);
+        }
+    }
+
+    async requestReVerificationHandler(request, h) {
+        try {
+            const { id } = request.params;
+            const userId = request.auth.credentials.jwt.user.id;
+
+            const mahasiswa = await this._service.getById(id);
+            if (!mahasiswa || mahasiswa.user_id !== userId) {
+                throw Boom.forbidden('Tidak bisa mengakses data milik pengguna lain');
+            }
+
+            const statusVerifikasi = await this._statusVerifikasiService.getByKode('menunggu_peninjauan');
+            const statusVerifikasiId = statusVerifikasi.id;
+
+            const dataToValidate = {
+                status_verifikasi_id: statusVerifikasiId,
+                updated_by: userId,
+            };
+
+            this._validator.validateUpdatePayload(dataToValidate);
+
+            const updatedMahasiswa = await this._service.requestReVerification(id, dataToValidate);
 
             return h.response({
                 status: 'success',
-                message: 'Mahasiswa successfully created',
-                data: {
-                    mahasiswa: result,
-                },
-            }).code(201);
+                message: 'Permintaan verifikasi ulang berhasil dikirim.',
+                data: { mahasiswa: updatedMahasiswa },
+            }).code(200);
         } catch (error) {
             return this._handleError(h, error);
         }
     }
 
-    // Update mahasiswa by ID
     async updateMahasiswaHandler(request, h) {
         try {
             const { id } = request.params;
+            const userId = request.auth.credentials.jwt.user.id;
             const payload = request.payload;
 
-            // Cek apakah file KTM baru dikirim
+            const mahasiswa = await this._service.getById(id);
+            if (!mahasiswa || mahasiswa.user_id !== userId) {
+                throw Boom.forbidden('Tidak bisa mengakses data milik pengguna lain');
+            }
+
             let ktmUrl = payload.ktm_url;
-            if (payload.ktm_url && payload.ktm_url.hapi) {
-                // Kalau field ini file, maka upload file baru
-                const uploaded = await this._service.saveKtmFile(payload.ktm_url);
+            if (payload.ktm_url?.hapi) {
+                const uploaded = await this._fileStorageService.saveKtmFile(payload.ktm_url);
                 ktmUrl = uploaded.url;
             }
 
-            // Validasi data update
-            this._validator.validateUpdatePayload({
-                nrp: payload.nrp,
-                nama_lengkap: payload.nama_lengkap,
-                program_studi_id: payload.program_studi_id,
-                tanggal_lahir: payload.tanggal_lahir,
-                jenis_kelamin: payload.jenis_kelamin,
-                no_telepon: payload.no_telepon,
+            const dataToValidate = {
+                ...payload,
                 ktm_url: ktmUrl,
-                user_id: payload.user_id,
-                status_id: payload.status_id,
-                updated_by: payload.updated_by,
-            });
+                updated_by: userId,
+            };
 
-            // Simpan ke database
-            const updatedMahasiswa = await this._service.update(id, {
-                nrp: payload.nrp,
-                nama_lengkap: payload.nama_lengkap,
-                program_studi_id: payload.program_studi_id,
-                tanggal_lahir: payload.tanggal_lahir,
-                jenis_kelamin: payload.jenis_kelamin,
-                no_telepon: payload.no_telepon,
-                ktm_url: ktmUrl,
-                user_id: payload.user_id,
-                status_id: payload.status_id,
-                updated_by: payload.updated_by,
-            });
+            this._validator.validateUpdatePayload(dataToValidate);
+
+            const updatedMahasiswa = await this._service.update(id, dataToValidate);
 
             return {
                 status: 'success',
-                message: 'Mahasiswa successfully updated',
-                data: {
-                    mahasiswa: updatedMahasiswa,
-                },
+                message: 'Mahasiswa berhasil diperbarui',
+                data: { mahasiswa: updatedMahasiswa },
             };
         } catch (error) {
             return this._handleError(h, error);
         }
     }
 
-    // Soft delete mahasiswa by ID
     async deleteMahasiswaHandler(request, h) {
+        const client = await this._userService._pool.connect();
+
         try {
             const { id } = request.params;
+            const requesterId = request.auth.credentials.jwt.user.id;
 
-            const deletedBy = request.auth.credentials.jwt.user.id;
+            // Ambil data mahasiswa untuk cek otorisasi
+            const mahasiswa = await this._service.getById(id);
+            if (!mahasiswa) {
+                throw new NotFoundError('Mahasiswa tidak ditemukan');
+            }
 
-            const result = await this._service.softDelete(id, deletedBy);
+            // Pastikan requester adalah master
+            const requesterRole = request.auth.credentials.jwt.user.role_name;
+            const isAdmin = requesterRole === 'admin';
+
+            if (!isAdmin) {
+                throw Boom.forbidden('Tidak diizinkan menghapus data ini');
+            }
+
+            const userId = mahasiswa.user_id;
+
+            // Mulai transaksi
+            await client.query('BEGIN');
+
+            // Soft delete mahasiswa
+            await this._service.softDelete(client, id, requesterId);
+
+            // Soft delete user
+            await this._userService.deleteUser(client, userId, requesterId);
+
+            await client.query('COMMIT');
 
             return {
                 status: 'success',
-                message: 'Mahasiswa successfully deleted',
-                data: {
-                    mahasiswa: result,
-                },
+                message: 'Mahasiswa berhasil dihapus',
             };
+
         } catch (error) {
+            await client.query('ROLLBACK');
             return this._handleError(h, error);
+        } finally {
+            client.release();
         }
     }
 
-    // Upload KTM file
     async uploadKtmHandler(request, h) {
         try {
             const file = request.payload.file;
-            const savedFile = await this._service.saveKtmFile(file);
+            const savedFile = await this._fileStorageService.saveKtmFile(file);
             return h.response(savedFile).code(201);
         } catch (error) {
             return this._handleError(h, error);
         }
     }
 
-    async getRekamMedisByNrpHandler(request, h) {
-        const { nrp } = request.params;
-    
+    async getMahasiswaByKonselorIdHandler(request, h) {
         try {
-            const data = await this._service.getRekamMedisByNrp(nrp);
-    
+            const userId = request.auth.credentials.jwt.user.id;
+
+            const konselor = await this._konselorProfileService.getByUserId(userId);
+            if (!konselor) {
+                throw new ClientError('Data konselor tidak ditemukan', 404);
+            }
+
+            const data = await this._service.getMahasiswaByKonselorId(konselor.id);
             return {
                 status: 'success',
                 data,
             };
         } catch (error) {
-            if (error instanceof NotFoundError) {
-                return h.response({
-                    status: 'fail',
-                    message: error.message,
-                }).code(404);
-            }
-    
             return this._handleServerError(h, error);
         }
-    }    
+    }
 
-    // Handle ClientError responses
+    async getRekamMedisByNrpHandler(request, h) {
+        const { nrp } = request.params;
+
+        try {
+            const data = await this._service.getRekamMedisByNrp(nrp);
+            return {
+                status: 'success',
+                data,
+            };
+        } catch (error) {
+            return this._handleServerError(h, error);
+        }
+    }
+
     _handleError(h, error) {
         if (error instanceof ClientError) {
-            const response = h.response({
+            return h.response({
                 status: 'fail',
                 message: error.message,
-            });
-            response.code(error.statusCode); 
-            return response;
+            }).code(error.statusCode);
         }
         return this._handleServerError(h, error);
     }
-    
+
     _handleServerError(h, error) {
-        console.error(error); 
-        const response = h.response({
+        console.error(error);
+        return h.response({
             status: 'error',
             message: 'Sorry, there was an error on the server.',
-        });
-        response.code(500);
-        return response;
-    }    
+        }).code(500);
+    }
 }
 
 module.exports = MahasiswaHandler;

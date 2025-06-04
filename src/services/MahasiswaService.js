@@ -1,154 +1,340 @@
 const fs = require('fs');
 const path = require('path');
+const { encrypt, decrypt } = require('../utils/encryption');
 const InvariantError = require('../exceptions/InvariantError');
 const NotFoundError = require('../exceptions/NotFoundError');
+const { Pool } = require('pg');
 
 class MahasiswaService {
   constructor() {
-    this._pool = new (require('pg')).Pool({
+    this._pool = new Pool({
       connectionString: process.env.DATABASE_URL,
     });
 
-    // Path for the storage folder
     this.storagePath = path.join(__dirname, '..', 'storage');
   }
 
-  // Method to get all mahasiswa
-  async getAll() {
-    const query = {
-      text: `SELECT * FROM mahasiswa WHERE deleted_at IS NULL`,
-    };
-
-    const result = await this._pool.query(query);
-    return result.rows;
+  getDatabaseClient() {
+    return this._pool.connect();
   }
 
-  // Method to get mahasiswa by ID
+  async create(client, payload) {
+    const { nrp, nama_lengkap, program_studi_id, tanggal_lahir, jenis_kelamin, ktm_url, user_id, status_verifikasi_id } = payload;
+
+    const query = {
+      text: `INSERT INTO mahasiswa (
+            nrp, nama_lengkap, program_studi_id, tanggal_lahir,
+            jenis_kelamin, ktm_url, user_id, status_verifikasi_id, created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+        RETURNING *`,
+      values: [
+        nrp, nama_lengkap, program_studi_id, tanggal_lahir,
+        jenis_kelamin, ktm_url, user_id, status_verifikasi_id,
+      ],
+    };
+
+    const result = await client.query(query);
+    return result.rows[0];
+  }
+
+  async getAll() {
+    const query = `
+      SELECT mahasiswa.*, 
+             ps.id AS program_studi_id,
+             ps.jenjang, 
+             ps.nama_program_studi, 
+             sv.id AS status_verifikasi_id,
+             sv.label AS status_verifikasi_label,
+             sv.warna AS status_verifikasi_warna
+        FROM mahasiswa
+        LEFT JOIN program_studi ps ON mahasiswa.program_studi_id = ps.id
+        LEFT JOIN status_verifikasi sv ON mahasiswa.status_verifikasi_id = sv.id
+       WHERE mahasiswa.deleted_at IS NULL
+    `;
+
+    const result = await this._pool.query(query);
+
+    // Format the results to return the nested structure
+    const formattedResults = result.rows.map(row => ({
+      id: row.id,
+      nrp: row.nrp,
+      nama_lengkap: row.nama_lengkap,
+      program_studi: {
+        id: row.program_studi_id,
+        jenjang: row.jenjang,
+        nama_program_studi: row.nama_program_studi
+      },
+      status_verifikasi: {
+        id: row.status_verifikasi_id,
+        label: row.status_verifikasi_label,
+        warna: row.status_verifikasi_warna
+      },
+      ktm_url: row.ktm_url,
+      jenis_kelamin: row.jenis_kelamin,
+      tanggal_lahir: row.tanggal_lahir,
+      user_id: row.user_id,
+      is_active: row.is_active,
+      created_at: row.created_at,
+      updated_at: row.updated_at
+    }));
+
+    return formattedResults;
+  }
+
   async getById(id) {
     const query = {
-      text: `SELECT * FROM mahasiswa WHERE id = $1 AND deleted_at IS NULL`,
+      text: `
+        SELECT mahasiswa.*, 
+               ps.id AS program_studi_id,
+               ps.jenjang, 
+               ps.nama_program_studi, 
+               sv.id AS status_verifikasi_id,
+               sv.label AS status_verifikasi_label
+          FROM mahasiswa
+          LEFT JOIN program_studi ps ON mahasiswa.program_studi_id = ps.id
+          LEFT JOIN status_verifikasi sv ON mahasiswa.status_verifikasi_id = sv.id
+         WHERE mahasiswa.id = $1 AND mahasiswa.deleted_at IS NULL
+      `,
       values: [id],
     };
 
     const result = await this._pool.query(query);
 
     if (!result.rows.length) {
-      throw new NotFoundError("Mahasiswa not found.");
+      throw new NotFoundError('Mahasiswa not found.');
     }
 
-    return result.rows[0];
+    const row = result.rows[0];
+
+    // Format the result to return the nested structure
+    const formattedResult = {
+      id: row.id,
+      nrp: row.nrp,
+      nama_lengkap: row.nama_lengkap,
+      program_studi: {
+        id: row.program_studi_id,
+        jenjang: row.jenjang,
+        nama: row.nama_program_studi
+      },
+      status_verifikasi: {
+        id: row.status_verifikasi_id,
+        label: row.status_verifikasi_label
+      },
+      ktm_url: row.ktm_url,
+      jenis_kelamin: row.jenis_kelamin,
+      tanggal_lahir: row.tanggal_lahir,
+      user_id: row.user_id,
+      is_active: row.is_active,
+      created_at: row.created_at,
+      updated_at: row.updated_at
+    };
+
+    return formattedResult;
   }
 
-  // Method to get mahasiswa by NRP
   async getByNrp(nrp) {
-    const query = {
+    const result = await this._pool.query({
       text: `SELECT * FROM mahasiswa WHERE nrp = $1 AND deleted_at IS NULL`,
       values: [nrp],
-    };
+    });
 
-    const result = await this._pool.query(query);
-
-    if (!result.rows.length) {
-      return null;
-    }
-
-    return result.rows[0];
+    return result.rows[0] || null;
   }
 
-  // Method to create Mahasiswa (students)
-  async create({
-    nrp, nama_lengkap, program_studi_id, tanggal_lahir,
-    jenis_kelamin, no_telepon, ktm_url, user_id, status_id, created_by
-  }) {
-    const existing = await this.getByNrp(nrp);
-
-    if (existing) {
-      throw new InvariantError('Mahasiswa already exists.');
-    }
-
+  async getByUserId(userId) {
     const query = {
       text: `
-        INSERT INTO mahasiswa (
-          nrp, nama_lengkap, program_studi_id, tanggal_lahir, jenis_kelamin, no_telepon, ktm_url, user_id, status_id, created_by
-        )
-        VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-        )
-        RETURNING *`,
-      values: [nrp, nama_lengkap, program_studi_id, tanggal_lahir, jenis_kelamin, no_telepon, ktm_url, user_id, status_id, created_by],
+      SELECT mahasiswa.*, 
+             ps.id AS program_studi_id,
+             ps.jenjang, 
+             ps.nama_program_studi,
+             d.name, 
+             sv.id AS status_verifikasi_id,
+             sv.label AS status_verifikasi_label,
+             sv.warna AS status_verifikasi_warna
+        FROM mahasiswa
+        LEFT JOIN program_studi ps ON mahasiswa.program_studi_id = ps.id
+        LEFT JOIN departement d ON ps.departement_id = d.id
+        LEFT JOIN status_verifikasi sv ON mahasiswa.status_verifikasi_id = sv.id
+       WHERE mahasiswa.user_id = $1 AND mahasiswa.deleted_at IS NULL
+    `,
+      values: [userId],
     };
 
     const result = await this._pool.query(query);
 
+    if (!result.rows.length) return null;
+
+    const row = result.rows[0];
+
+    return {
+      id: row.id,
+      nrp: row.nrp,
+      nama_lengkap: row.nama_lengkap,
+      program_studi: {
+        id: row.program_studi_id,
+        jenjang: row.jenjang,
+        nama_program_studi: row.nama_program_studi,
+        departement: row.name,
+      },
+      jenis_kelamin: row.jenis_kelamin,
+      tanggal_lahir: row.tanggal_lahir,
+      status_verifikasi: {
+        id: row.status_verifikasi_id,
+        label: row.status_verifikasi_label,
+        warna: row.status_verifikasi_warna,
+      },
+      catatan_verifikasi: row.catatan_verifikasi,
+      ktm_url: row.ktm_url,
+      user_id: row.user_id,
+      is_active: row.is_active,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    };
+  }
+
+  async getMahasiswaWithJanjiTemu() {
+    const query = `
+    SELECT DISTINCT ON (mahasiswa.nrp) 
+           mahasiswa.*, 
+           ps.id AS program_studi_id,
+           ps.jenjang, 
+           ps.nama_program_studi, 
+           sv.id AS status_verifikasi_id,
+           sv.label AS status_verifikasi_label,
+           sv.warna AS status_verifikasi_warna
+    FROM mahasiswa
+    LEFT JOIN program_studi ps ON mahasiswa.program_studi_id = ps.id
+    LEFT JOIN status_verifikasi sv ON mahasiswa.status_verifikasi_id = sv.id
+    WHERE mahasiswa.deleted_at IS NULL
+      AND EXISTS (
+        SELECT 1 FROM janji_temu jt
+        WHERE jt.nrp = mahasiswa.nrp
+          AND jt.deleted_at IS NULL
+      )
+  `;
+
+    const result = await this._pool.query(query);
+
+    // Format the results to return the nested structure
+    const formattedResults = result.rows.map(row => ({
+      id: row.id,
+      nrp: row.nrp,
+      nama_lengkap: row.nama_lengkap,
+      program_studi: {
+        id: row.program_studi_id,
+        jenjang: row.jenjang,
+        nama_program_studi: row.nama_program_studi
+      },
+      status_verifikasi: {
+        id: row.status_verifikasi_id,
+        label: row.status_verifikasi_label,
+        warna: row.status_verifikasi_warna
+      },
+      ktm_url: row.ktm_url,
+      jenis_kelamin: row.jenis_kelamin,
+      tanggal_lahir: row.tanggal_lahir,
+      user_id: row.user_id,
+      is_active: row.is_active,
+      created_at: row.created_at,
+      updated_at: row.updated_at
+    }));
+
+    return formattedResults;
+  }
+
+  async verifyMahasiswa(id, { status_verifikasi_id, catatan_verifikasi = null, verified_by }) {
+    const result = await this._pool.query({
+      text: `
+        UPDATE mahasiswa SET
+          status_verifikasi_id = $1,
+          catatan_verifikasi = $2,
+          verified_at = NOW(),
+          verified_by = $3,
+          updated_at = NOW()
+        WHERE id = $4 AND deleted_at IS NULL
+        RETURNING *
+      `,
+      values: [status_verifikasi_id, catatan_verifikasi, verified_by, id],
+    });
+
     if (!result.rows.length) {
-      throw new InvariantError("Failed to create mahasiswa.");
+      throw new NotFoundError('Failed to verify mahasiswa.');
     }
 
     return result.rows[0];
   }
 
-  // Method to update mahasiswa details
-  async update(id, payload) {
+  async requestReVerification(id, payload) {
     const {
-      nrp,
-      nama_lengkap,
-      program_studi_id,
-      tanggal_lahir,
-      jenis_kelamin,
-      no_telepon,
-      ktm_url,
-      user_id,
-      status_id,
+      status_verifikasi_id,
       updated_by
     } = payload;
 
-    // Ambil data lama untuk update
+    const result = await this._pool.query({
+      text: `
+      UPDATE mahasiswa SET
+        status_verifikasi_id = $1,
+        updated_at = NOW(),
+        updated_by = $2
+      WHERE id = $3 AND deleted_at IS NULL
+      RETURNING *
+    `,
+      values: [
+        status_verifikasi_id,
+        updated_by,
+        id
+      ],
+    });
+
+    if (!result.rows.length) {
+      throw new NotFoundError("Mahasiswa tidak ditemukan atau sudah dihapus.");
+    }
+
+    return result.rows[0];
+  }
+
+  async update(id, payload) {
     const existing = await this.getById(id);
 
-    // Jika data tidak disertakan, tetap gunakan data yang ada
-    const updatedNrp = nrp ?? existing.nrp;
-    const updatedNamaLengkap = nama_lengkap ?? existing.nama_lengkap;
-    const updatedProdi = program_studi_id ?? existing.program_studi_id;
-    const updatedTanggalLahir = tanggal_lahir ?? existing.tanggal_lahir;
-    const updatedJenisKelamin = jenis_kelamin ?? existing.jenis_kelamin;
-    const updatedNoTelepon = no_telepon ?? existing.no_telepon;
-    const updatedKtmUrl = ktm_url ?? existing.ktm_url;
-    const updatedUserId = user_id ?? existing.user_id;
-    const updatedStatusId = status_id ?? existing.status_id;
+    const {
+      nrp = existing.nrp,
+      nama_lengkap = existing.nama_lengkap,
+      program_studi_id = existing.program_studi_id,
+      tanggal_lahir = existing.tanggal_lahir,
+      jenis_kelamin = existing.jenis_kelamin,
+      ktm_url = existing.ktm_url,
+      is_active = existing.is_active,
+      updated_by
+    } = payload;
 
-    const query = {
+    const result = await this._pool.query({
       text: `
-        UPDATE mahasiswa
-        SET
-          nrp = $1, 
+        UPDATE mahasiswa SET
+          nrp = $1,
           nama_lengkap = $2,
           program_studi_id = $3,
           tanggal_lahir = $4,
           jenis_kelamin = $5,
-          no_telepon = $6,
-          ktm_url = $7,
-          user_id = $8,
-          status_id = $9,
-          updated_by = $10,
-          updated_at = current_timestamp
-        WHERE id = $11 AND deleted_at IS NULL
-        RETURNING *`,
+          ktm_url = $6,
+          is_active = $7,
+          updated_at = NOW(),
+          updated_by = $8
+        WHERE id = $9 AND deleted_at IS NULL
+        RETURNING *
+      `,
       values: [
-        updatedNrp,
-        updatedNamaLengkap,
-        updatedProdi,
-        updatedTanggalLahir,
-        updatedJenisKelamin,
-        updatedNoTelepon,
-        updatedKtmUrl,
-        updatedUserId,
-        updatedStatusId,
+        nrp,
+        nama_lengkap,
+        program_studi_id,
+        tanggal_lahir,
+        jenis_kelamin,
+        ktm_url,
+        is_active,
         updated_by,
         id
       ],
-    };
-
-    const result = await this._pool.query(query);
+    });
 
     if (!result.rows.length) {
       throw new NotFoundError("Mahasiswa not found or already deleted.");
@@ -157,197 +343,214 @@ class MahasiswaService {
     return result.rows[0];
   }
 
-  // Method to delete mahasiswa (soft delete)
-  async softDelete(id, deleted_by) {
+  async updateKtm(client, mahasiswaId, ktmUrl) {
     const query = {
       text: `
-        UPDATE mahasiswa
-        SET deleted_by = $1,
-            deleted_at = current_timestamp
-        WHERE id = $2 AND deleted_at IS NULL
-        RETURNING *`,
-      values: [deleted_by, id],
+            UPDATE mahasiswa 
+            SET ktm_url = $1, updated_at = NOW() 
+            WHERE id = $2
+            RETURNING *;
+        `,
+      values: [ktmUrl, mahasiswaId],
     };
 
-    const result = await this._pool.query(query);
+    const result = await client.query(query);
 
-    if (!result.rows.length) {
-      throw new NotFoundError("Mahasiswa not found or already deleted.");
+    if (result.rowCount === 0) {
+      throw new NotFoundError('Gagal memperbarui KTM, mahasiswa tidak ditemukan');
     }
 
     return result.rows[0];
   }
 
-  // Method to save the KTM file (upload)
-  async saveKtmFile(file) {
-    // Ensure the file object contains the necessary properties
-    if (!file || !file.hapi || !file.hapi.filename) {
-      throw new InvariantError('Invalid file upload.');
-    }
-  
-    // Tentukan path folder penyimpanan KTM
-    const ktmStoragePath = path.join(this.storagePath, 'ktm');
-  
-    // Pastikan folder /storage/ktm ada
-    if (!fs.existsSync(ktmStoragePath)) {
-      fs.mkdirSync(ktmStoragePath, { recursive: true }); // Buat folder jika belum ada
-    }
-  
-    // Buat nama file unik
-    const fileName = `${Date.now()}_${file.hapi.filename}`;
-    const filePath = path.join(ktmStoragePath, fileName);
-  
-    return new Promise((resolve, reject) => {
-      const fileStream = fs.createWriteStream(filePath);
-      file.pipe(fileStream);
-  
-      fileStream.on('finish', () => {
-        resolve({
-          fileName,
-          filePath,
-          url: `/storage/ktm/${fileName}`,
-        });
-      });
-  
-      fileStream.on('error', (err) => {
-        reject(new InvariantError("Gagal menyimpan file KTM"));
-      });
-    });
-  }  
-
-  async getRekamMedisByNrp(nrp) {
-    // Panggil fungsi getByNrp untuk mengambil data mahasiswa berdasarkan nrp
-    const mahasiswa = await this.getByNrp(nrp);
-
-    if (!mahasiswa) {
-      throw new NotFoundError('Mahasiswa tidak ditemukan');
-    }
-
-    // Ambil nama status mahasiswa
-    const statusQuery = {
+  async softDelete(client, id, deletedBy) {
+    const query = {
       text: `
-      SELECT name FROM status WHERE id = $1
+            UPDATE mahasiswa 
+            SET deleted_at = NOW(), deleted_by = $1
+            WHERE id = $2 AND deleted_at IS NULL
+            RETURNING *
       `,
-      values: [mahasiswa.status_id],
+      values: [deletedBy, id],
     };
 
-    const statusResult = await this._pool.query(statusQuery);
-    const statusName = statusResult.rows[0]?.name || 'Unknown';
+    const result = await client.query(query);
 
-    // Ambil janji temu berdasarkan nrp mahasiswa
-    const janjiTemuQuery = {
+    if (!result.rowCount) {
+      throw new NotFoundError('Mahasiswa tidak ditemukan atau sudah dihapus');
+    }
+
+    return result.rows[0];
+  }
+
+  async getMahasiswaByKonselorId(konselorProfilId) {
+    const query = {
       text: `
-          SELECT jt.id AS janji_temu_id
-          FROM janji_temu jt
-          WHERE jt.nrp = $1
-        `,
+      WITH sesi_konselor AS (
+        SELECT 
+          m.nrp,
+          COUNT(k.id) AS total_sesi_dengan_konselor
+        FROM konseling k
+        JOIN janji_temu jt ON k.janji_temu_id = jt.id
+        JOIN mahasiswa m ON jt.nrp = m.nrp
+        WHERE k.konselor_profil_id = $1
+          AND k.deleted_at IS NULL
+        GROUP BY m.nrp
+      ),
+      sesi_total AS (
+        SELECT 
+          m.nrp,
+          COUNT(k.id) AS total_sesi_semua_konselor
+        FROM konseling k
+        JOIN janji_temu jt ON k.janji_temu_id = jt.id
+        JOIN mahasiswa m ON jt.nrp = m.nrp
+        WHERE k.deleted_at IS NULL
+        GROUP BY m.nrp
+      )
+      SELECT DISTINCT
+        m.nrp,
+        m.nama_lengkap AS nama_mahasiswa,
+        m.jenis_kelamin,
+        ps.jenjang, 
+        ps.nama_program_studi,
+        COALESCE(sc.total_sesi_dengan_konselor, 0) AS total_sesi_dengan_konselor,
+        COALESCE(st.total_sesi_semua_konselor, 0) AS total_sesi_semua_konselor
+      FROM mahasiswa m
+      LEFT JOIN program_studi ps ON m.program_studi_id = ps.id
+      LEFT JOIN sesi_konselor sc ON m.nrp = sc.nrp
+      LEFT JOIN sesi_total st ON m.nrp = st.nrp
+      WHERE sc.nrp IS NOT NULL
+      ORDER BY m.nama_lengkap ASC;
+      `,
+      values: [konselorProfilId],
+    };
+
+    const result = await this._pool.query(query);
+
+    return result.rows.map(row => ({
+      nrp: row.nrp,
+      nama_mahasiswa: row.nama_mahasiswa,
+      jenjang: row.jenjang,
+      nama_program_studi: row.nama_program_studi,
+      jenis_kelamin: row.jenis_kelamin,
+      total_sesi_dengan_konselor: parseInt(row.total_sesi_dengan_konselor),
+      total_sesi_keseluruhan: parseInt(row.total_sesi_semua_konselor),
+    }));
+  }
+
+  async getRekamMedisByNrp(nrp) {
+    const query = {
+      text: `
+      WITH konseling_data AS (
+        SELECT
+          m.id AS mahasiswa_id,
+          m.nrp,
+          m.nama_lengkap,
+          m.program_studi_id,
+          m.jenis_kelamin,
+          m.tanggal_lahir,
+          ps.jenjang, 
+          ps.nama_program_studi, 
+          k.id AS konseling_id,
+          k.konselor_profil_id,
+          kp.nama_lengkap AS nama_konselor,
+          k.tanggal_konseling,
+          k.jam_mulai,
+          k.jam_selesai,
+          k.lokasi,
+          k.status_kehadiran,
+          jt.tipe_konsultasi,
+          jt.created_at AS janji_temu_created_at,
+          s.label AS status_label,
+          s.warna AS status_warna,
+          c.id AS catatan_konseling_id,
+          c.deskripsi_masalah,
+          c.usaha,
+          c.kendala,
+          c.pencapaian,
+          c.diagnosis,
+          c.intervensi,
+          c.tindak_lanjut,
+          c.created_at AS catatan_created_at,
+          ROW_NUMBER() OVER (PARTITION BY m.nrp ORDER BY jt.created_at ASC) AS pertemuan_ke
+        FROM mahasiswa m
+        JOIN program_studi ps ON m.program_studi_id = ps.id
+        JOIN janji_temu jt ON m.nrp = jt.nrp
+        JOIN konseling k ON jt.id = k.janji_temu_id  -- INNER JOIN untuk pastikan ada data konseling
+        LEFT JOIN konselor_profil kp ON k.konselor_profil_id = kp.id
+        LEFT JOIN status s ON k.status_id = s.id
+        LEFT JOIN catatan_konseling c ON k.id = c.konseling_id
+        WHERE m.nrp = $1 
+          AND m.deleted_at IS NULL
+          AND k.id IS NOT NULL  -- Pastikan data konseling valid
+      )
+      SELECT * FROM konseling_data
+      ORDER BY tanggal_konseling DESC, jam_mulai ASC
+      `,
       values: [nrp],
     };
 
-    const janjiTemuResult = await this._pool.query(janjiTemuQuery);
+    const result = await this._pool.query(query);
 
-    if (!janjiTemuResult.rows.length) {
-      throw new NotFoundError('Janji temu tidak ditemukan untuk mahasiswa ini');
+    if (result.rows.length === 0) {
+      return null;
     }
 
-    // Ambil konseling yang terkait dengan janji temu
-    const konselingQuery = {
-      text: `
-      SELECT konseling.id AS konseling_id, konseling.tanggal_konseling, 
-             konseling.jam_mulai, konseling.jam_selesai, konseling.lokasi, konseling.status_id,
-             konseling.konselor_profil_id
-      FROM konseling
-      WHERE konseling.janji_temu_id = ANY($1) AND konseling.deleted_at IS NULL
-      ORDER BY konseling.tanggal_konseling DESC
-    `,
-      values: [janjiTemuResult.rows.map(row => row.janji_temu_id)],
-    };
+    const mahasiswaData = result.rows[0];
+    const rekamMedis = [];
 
-    const konselingResult = await this._pool.query(konselingQuery);
+    result.rows.forEach(row => {
+      const konselorName = row.nama_lengkap 
+        ? row.nama_konselor
+        : 'Tidak ada konselor';
+      
+      const statusKonseling = row.status_label || 'Status tidak ditemukan';
 
-    // Ambil catatan dan topik untuk setiap konseling
-    const rekamMedis = await Promise.all(
-      konselingResult.rows.map(async (konseling) => {
-        const catatanQuery = {
-          text: `
-          SELECT * FROM catatan_konseling 
-          WHERE konseling_id = $1 AND deleted_at IS NULL
-          ORDER BY created_at ASC
-        `,
-          values: [konseling.konseling_id],
-        };
+      let durasi = null;
+      if (row.jam_mulai && row.jam_selesai) {
+        const jamMulai = new Date(`1970-01-01T${row.jam_mulai}:00Z`);
+        const jamSelesai = new Date(`1970-01-01T${row.jam_selesai}:00Z`);
+        durasi = (jamSelesai - jamMulai) / 1000 / 60;
+      }
 
-        const catatanResult = await this._pool.query(catatanQuery);
-        const catatanKonseling = catatanResult.rows[0]; // Ambil catatan pertama jika ada
+      const catatanKonseling = row.catatan_konseling_id ? {
+        id: row.catatan_konseling_id,
+        deskripsi_masalah: decrypt(row.deskripsi_masalah),
+        usaha: decrypt(row.usaha),
+        kendala: decrypt(row.kendala),
+        pencapaian: decrypt(row.pencapaian),
+        diagnosis: decrypt(row.diagnosis),
+        intervensi: decrypt(row.intervensi),
+        tindak_lanjut: decrypt(row.tindak_lanjut),
+        created_at: row.catatan_created_at,
+      } : null;
 
-        // Ambil topik konseling
-        const topikQuery = {
-          text: `
-            SELECT topik.id, topik.name 
-            FROM topik
-            LEFT JOIN konseling_topik ON konseling_topik.topik_id = topik.id
-            WHERE konseling_topik.konseling_id = $1
-            AND konseling_topik.deleted_at IS NULL 
-          `,
-          values: [konseling.konseling_id],
-        };
+      rekamMedis.push({
+        konseling_id: row.konseling_id,
+        konselor: konselorName,
+        tanggal_konseling: row.tanggal_konseling,
+        jam_mulai: row.jam_mulai,
+        jam_selesai: row.jam_selesai,
+        lokasi: row.lokasi,
+        status: {
+          label: statusKonseling,
+          warna: row.status_warna
+        },
+        durasi: durasi,
+        pertemuan_ke: row.pertemuan_ke,
+        tipe_konsultasi: row.tipe_konsultasi,
+        catatan_konseling: catatanKonseling,
+      });
+    });
 
-        const topikResult = await this._pool.query(topikQuery);
-        const topikList = topikResult.rows;
-
-        // Ambil nama konselor
-        const konselorQuery = {
-          text: `
-          SELECT nama_lengkap FROM konselor_profil WHERE id = $1
-        `,
-          values: [konseling.konselor_profil_id],
-        };
-
-        const konselorResult = await this._pool.query(konselorQuery);
-        const konselorName = konselorResult.rows[0]?.nama_lengkap || 'Unknown';
-
-        // Ambil nama status
-        const statusKonselingQuery = {
-          text: `
-          SELECT name FROM status WHERE id = $1
-        `,
-          values: [konseling.status_id],
-        };
-
-        const statusKonselingResult = await this._pool.query(statusKonselingQuery);
-        const statusKonselingName = statusKonselingResult.rows[0]?.name || 'Unknown';
-
-        return {
-          konseling_id: konseling.konseling_id,
-          konselor: konselorName,
-          tanggal_konseling: konseling.tanggal_konseling,
-          jam_mulai: konseling.jam_mulai,
-          jam_selesai: konseling.jam_selesai,
-          lokasi: konseling.lokasi,
-          status: statusKonselingName, // Nama status untuk konseling
-          catatan_konseling: {
-            id: catatanKonseling?.id || null,
-            deskripsi_masalah: catatanKonseling?.deskripsi_masalah || null,
-            usaha: catatanKonseling?.usaha || null,
-            kendala: catatanKonseling?.kendala || null,
-            pencapaian: catatanKonseling?.pencapaian || null,
-            diagnosis: catatanKonseling?.diagnosis || null,
-            intervensi: catatanKonseling?.intervensi || null,
-            tindak_lanjut: catatanKonseling?.tindak_lanjut || null,
-            created_at: catatanKonseling?.created_at || null,
-            topik: topikList,
-          },
-        };
-      })
-    );
-
-    // Return dengan format yang sama, mengganti status_id dengan statusName
     return {
-      id: mahasiswa.id,
-      nrp: mahasiswa.nrp,
-      nama_lengkap: mahasiswa.nama_lengkap,
-      program_studi_id: mahasiswa.program_studi_id,
-      status: statusName, // Menggunakan nama status mahasiswa
+      id: mahasiswaData.mahasiswa_id,
+      nrp: mahasiswaData.nrp,
+      nama_lengkap: mahasiswaData.nama_lengkap,
+      jenjang: mahasiswaData.jenjang,
+      program_studi: mahasiswaData.nama_program_studi,
+      tanggal_lahir: mahasiswaData.tanggal_lahir,
+      jenis_kelamin: mahasiswaData.jenis_kelamin,
       rekam_medis: rekamMedis,
     };
   }

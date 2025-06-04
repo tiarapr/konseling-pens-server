@@ -9,56 +9,47 @@ exports.shorthands = undefined;
  * @returns {Promise<void> | void}
  */
 exports.up = (pgm) => {
-    pgm.createTable("status", {
+    // Buat tabel status
+    pgm.createTable('status', {
         id: {
-          type: "UUID",
-          primaryKey: true,
-          default: pgm.func("gen_random_uuid()"),
+            type: 'UUID',
+            primaryKey: true,
+            default: pgm.func('gen_random_uuid()'),
         },
-        name: { 
-            type: "VARCHAR(50)", 
-            notNull: true 
-        },
-        tipe_status_id: {
-            type: "UUID",
+        kode_status: {
+            type: 'VARCHAR(50)',
             notNull: true,
-            references: "tipe_status(id)",
-            onUpdate: "CASCADE",
+            unique: true,
         },
-        created_at: {
-            type: "timestamp",
+        label: {
+            type: 'VARCHAR(100)',
             notNull: true,
-            default: pgm.func("current_timestamp"),
         },
-        created_by: {
-             type: "UUID",
+        warna: {
+            type: 'VARCHAR(20)',
+            notNull: false,
+        },
+        urutan: {
+            type: 'INT',
             notNull: true,
-            references: '"user"(id)',
-            onUpdate: "CASCADE",
         },
-        updated_at: {
-            type: "timestamp",
-            notNull: false,
-            default: null,
-        },
-        updated_by: {
-            type: "UUID",
-            notNull: false,
-            references: '"user"(id)',
-            onUpdate: "CASCADE",
-        },
-        deleted_at: {
-            type: "timestamp",
-            notNull: false,
-            default: null,
-        },
-        deleted_by: {
-            type: "UUID",
-            notNull: false,
-            references: '"user"(id)',
-            onUpdate: "CASCADE",
+        is_active: {
+            type: 'BOOLEAN',
+            notNull: true,
+            default: true,
         },
     });
+
+    // Seed data status
+    pgm.sql(`
+        INSERT INTO status (kode_status, label, warna, urutan) VALUES
+        ('dijadwalkan', 'Didijadwalkan', 'info', 1),
+        ('berlangsung', 'Berlangsung', 'primary', 2),
+        ('selesai', 'Selesai', 'success', 3),
+        ('dibatalkan', 'Dibatalkan', 'error', 4),
+        ('didijadwalkan_ulang', 'Didijadwalkan Ulang', 'warning', 5),
+        ('batal_otomatis', 'Dibatalkan Otomatis', 'dark', 6);
+    `);
 };
 
 /**
