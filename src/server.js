@@ -1,6 +1,8 @@
+require('dotenv').config();
 const Hapi = require('@hapi/hapi');
 const Jwt = require('@hapi/jwt');
 const Basic = require('@hapi/basic');
+const Inert = require('@hapi/inert');
 const config = require('./config/config');
 const basicAndJwtAuth = require('./auth/basicAndJwtAuth');
 const jwtStrategy = require('./auth/jwtStrategy');
@@ -18,10 +20,13 @@ const kemahasiswaanProfil = require('./api/kemahasiswaan-profil');
 const departement = require('./api/departement');
 const programStudi = require('./api/program-studi');
 const status = require('./api/status');
+const statusVerifikasi = require('./api/status-verifikasi');
 const mahasiswa = require('./api/mahasiswa');
 const janjiTemu = require('./api/janji-temu');
 const konseling = require('./api/konseling');
 const catatanKonseling = require('./api/catatan-konseling');
+const rating = require('./api/rating');
+const statistics = require('./api/statistics')
 
 // Importing services
 const RoleService = require('./services/RoleService');
@@ -47,6 +52,8 @@ const JanjiTemuService = require('./services/JanjiTemuService');
 const KonselingService = require('./services/KonselingService');
 const CatatanKonselingService = require('./services/CatatanKonselingService');
 const FileStorageService = require('./services/FileStorageService');
+const RatingService = require('./services/RatingService');
+const StatisticsService  = require('./services/StatisticsService');
 
 // Importing Validators
 const RoleValidator = require('./validator/role');
@@ -60,11 +67,12 @@ const KemahasiswaanProfilValidator = require('./validator/kemahasiswaan-profil')
 const DepartementValidator = require('./validator/departement');
 const ProgramStudiValidator = require('./validator/program-studi');
 const StatusValidator = require('./validator/status');
+const StatusVerifikasiValidator = require('./validator/status-verifikasi');
 const MahasiswaValidator = require('./validator/mahasiswa');
 const JanjiTemuValidator = require('./validator/janji-temu');
 const KonselingValidator = require('./validator/konseling');
 const CatatanKonselingValidator = require('./validator/catatan-konseling');
-
+const RatingValidator = require('./validator/rating');
 
 const init = async () => {
   const roleService = new RoleService();
@@ -89,16 +97,22 @@ const init = async () => {
   const konselingService = new KonselingService();
   const catatanKonselingService = new CatatanKonselingService();
   const fileStorageService = new FileStorageService();
+  const ratingService = new RatingService();
+  const statisticsService = new StatisticsService();
 
   const server = Hapi.server({
     port: config.PORT,
     host: config.HOST,
     routes: {
-      cors: { origin: ['*'] },
+      cors: {
+        origin: ['*'],
+        credentials: true,
+        headers: ['Authorization', 'Content-Type', 'Accept'],
+      },
     },
   });
 
-  await server.register([{ plugin: Jwt }, { plugin: Basic }]);
+  await server.register([{ plugin: Jwt }, { plugin: Basic }, { plugin: Inert }]);
 
   // Register Basic Authentication Strategy
   server.auth.strategy('basic', 'basic', basicStrategy());
@@ -109,6 +123,19 @@ const init = async () => {
   // Register Custom Authentication Scheme
   server.auth.scheme('basicAndJwt', basicAndJwtAuth);
   server.auth.strategy('basicAndJwtStrategy', 'basicAndJwt');
+
+  server.route({
+    method: 'OPTIONS',
+    path: '/{any*}',
+    handler: (request, h) => {
+      return h.response()
+        .header('Access-Control-Allow-Origin', '*')
+        .header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE')
+        .header('Access-Control-Allow-Headers', 'Authorization, Authorization-Two, Content-Type, Accept')
+        .header('Access-Control-Max-Age', 86400)
+        .code(204);
+    }
+  });
 
   // Register Plugins
   await server.register([
@@ -134,15 +161,15 @@ const init = async () => {
     },
     {
       plugin: adminProfil,
-      options: { service: adminProfilService, userService: userService, emailVerificationService: emailVerificationService, mailSender: mailService, fileStorageService: fileStorageService, validator: AdminProfilValidator },
+      options: { service: adminProfilService, userService: userService, roleService: roleService, emailVerificationService: emailVerificationService, mailSender: mailService, fileStorageService: fileStorageService, validator: AdminProfilValidator },
     },
     {
       plugin: konselorProfil,
-      options: { service: konselorProfilService, userService: userService, emailVerificationService: emailVerificationService, mailSender: mailService, fileStorageService: fileStorageService, validator: KonselorProfilValidator },
+      options: { service: konselorProfilService, roleService: roleService, userService: userService, emailVerificationService: emailVerificationService, mailSender: mailService, fileStorageService: fileStorageService, validator: KonselorProfilValidator },
     },
     {
       plugin: kemahasiswaanProfil,
-      options: { service: kemahasiswaanProfilService, userService: userService, emailVerificationService: emailVerificationService, mailSender: mailService, fileStorageService: fileStorageService, validator: KemahasiswaanProfilValidator },
+      options: { service: kemahasiswaanProfilService, roleService: roleService, userService: userService, emailVerificationService: emailVerificationService, mailSender: mailService, fileStorageService: fileStorageService, validator: KemahasiswaanProfilValidator },
     },
     {
       plugin: departement,
@@ -157,8 +184,12 @@ const init = async () => {
       options: { service: statusService, validator: StatusValidator },
     },
     {
+      plugin: statusVerifikasi,
+      options: { service: statusVerifikasiService, validator: StatusVerifikasiValidator },
+    },
+    {
       plugin: mahasiswa,
-      options: { service: mahasiswaService, statusVerifikasiService: statusVerifikasiService, userService: userService, fileStorageService: fileStorageService, validator: MahasiswaValidator, emailVerificationService: emailVerificationService, mailSender: mailService },
+      options: { service: mahasiswaService, statusVerifikasiService: statusVerifikasiService, userService: userService, konselorProfileService: konselorProfilService, roleService: roleService, fileStorageService: fileStorageService, validator: MahasiswaValidator, emailVerificationService: emailVerificationService, mailSender: mailService },
     },
     {
       plugin: janjiTemu,
@@ -166,13 +197,34 @@ const init = async () => {
     },
     {
       plugin: konseling,
-      options: { service: konselingService, validator: KonselingValidator },
+      options: { service: konselingService, statusService: statusService, konselorProfileService: konselorProfilService, validator: KonselingValidator },
     },
     {
       plugin: catatanKonseling,
-      options: { service: catatanKonselingService, validator: CatatanKonselingValidator },
+      options: { service: catatanKonselingService, statusService: statusService, konselingService: konselingService, validator: CatatanKonselingValidator },
+    },
+    {
+      plugin: rating,
+      options: { service: ratingService, validator: RatingValidator }
+    },
+    {
+      plugin: statistics,
+      options: { statisticsService: statisticsService }
     }
   ]);
+
+  // Static file handler
+  server.route({
+    method: 'GET',
+    path: '/storage/{param*}',
+    handler: {
+      directory: {
+        path: './storage',
+        redirectToSlash: true,
+        index: false,
+      }
+    }
+  });
 
   await server.start();
   console.log(`Server running at: ${server.info.uri}`);

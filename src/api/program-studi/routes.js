@@ -6,10 +6,7 @@ const routes = (handler) => [
         path: '/program-studi',
         handler: handler.getAllProgramStudiHandler,
         options: {
-            auth: 'basicAndJwtStrategy',
-            pre: [
-                { method: checkPermission('view_all_program_studi', 'manage_program_studis') }
-            ]
+            auth: 'basic'
         },
     },
     {

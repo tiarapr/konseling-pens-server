@@ -53,6 +53,21 @@ class StatusService {
     return result.rows[0];
   }
 
+  async getByKodeStatus(kode_status) {
+    const query = {
+      text: `SELECT * FROM status WHERE kode_status = $1`,
+      values: [kode_status],
+    };
+
+    const result = await this._pool.query(query);
+
+    if (!result.rows.length) {
+      throw new NotFoundError("Status dengan kode tersebut tidak ditemukan.");
+    }
+    
+    return result.rows[0];
+  }
+
   async update(id, { kode_status, label, warna, urutan, is_active }) {
     const existing = await this.getById(id);
 

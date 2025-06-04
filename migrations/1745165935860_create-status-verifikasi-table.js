@@ -43,9 +43,9 @@ exports.up = (pgm) => {
      INSERT INTO status_verifikasi (kode_status, label, warna, urutan) VALUES
     ('menunggu_verifikasi', 'Menunggu Verifikasi', 'primary', 1), 
     ('revisi_diperlukan', 'Revisi Diperlukan', 'warning', 2),
-    ('verifikasi_ulang', 'Verifikasi Ulang', 'info', 3),
+    ('menunggu_peninjauan', 'Menunggu Peninjauan', 'light', 3),
     ('terverifikasi', 'Terverifikasi', 'success', 4),
-    ('verifikasi_ditolak', 'Verifikasi Ditolak', 'error', 5);
+    ('ditolak', 'Verifikasi Ditolak', 'error', 5);
   `);
 };
 

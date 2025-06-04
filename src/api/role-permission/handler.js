@@ -10,6 +10,7 @@ class RolePermissionHandler {
         this.postRolePermissionHandler = this.postRolePermissionHandler.bind(this);
         this.deleteRolePermissionHandler = this.deleteRolePermissionHandler.bind(this);
         this.getPermissionsByRoleHandler = this.getPermissionsByRoleHandler.bind(this);
+        this.getAllRoleWithPermissionsHandler = this.getAllRoleWithPermissionsHandler.bind(this);
     }
 
     async getRolePermissionsHandler(request, h) {
@@ -104,6 +105,20 @@ class RolePermissionHandler {
                 status: 'success',
                 data: {
                     permissions,
+                },
+            };
+        } catch (error) {
+            return this._handleError(h, error);
+        }
+    }
+
+    async getAllRoleWithPermissionsHandler(request, h) {
+        try {
+            const rolesWithPermissions = await this._service.getAllRoleWithPermissions();
+            return {
+                status: 'success',
+                data: {
+                    rolesWithPermissions,
                 },
             };
         } catch (error) {

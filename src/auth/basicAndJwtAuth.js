@@ -1,45 +1,37 @@
-require('dotenv/config');
-const Boom = require('@hapi/boom');
 const Jwt = require('@hapi/jwt');
+const Boom = require('@hapi/boom');
 const config = require('../config/config');
 
 module.exports = () => {
   return {
     authenticate: async (request, h) => {
       try {
-        // Check Basic Auth in Authorization header
         const authorization = request.headers.authorization;
         if (!authorization || !authorization.startsWith('Basic ')) {
           throw Boom.unauthorized('Missing or invalid Basic authentication');
         }
 
-        // Validate Basic credentials
         const basicAuth = authorization.split(' ')[1];
         const [username, password] = Buffer.from(basicAuth, 'base64').toString().split(':');
-        
         const validUser = username === config.BASIC_AUTH_USERNAME;
         const validPass = password === config.BASIC_AUTH_PASSWORD;
-        
+
         if (!validUser || !validPass) {
           throw Boom.unauthorized('Invalid Basic authentication credentials');
         }
 
-        // Check JWT in Authorization header 
-        const authHeaderKey = config.AUTH_HEADER_KEY;
-        const authorizationTwo = request.headers[authHeaderKey];
-        if (!authorizationTwo || !authorizationTwo.startsWith('Bearer ')) {
-          throw Boom.unauthorized('Missing or invalid JWT authentication');
+        const token = request.state.accessToken;
+        if (!token) {
+          throw Boom.unauthorized('Missing or invalid JWT token');
         }
 
-        // Validate JWT token
-        const token = authorizationTwo.split(' ')[1];
         const artifacts = Jwt.token.decode(token);
-        await Jwt.token.verify(artifacts, process.env.ACCESS_TOKEN_KEY);  
-        
+        await Jwt.token.verify(artifacts, process.env.ACCESS_TOKEN_KEY);
+
+        // Ensure you're setting the user data properly in the credentials
         return h.authenticated({
           credentials: {
-            basic: { username },
-            jwt: artifacts.decoded.payload,
+            jwt: artifacts.decoded.payload,  // Assuming payload contains the user object
           },
           artifacts: { token },
         });
@@ -49,6 +41,6 @@ module.exports = () => {
         }
         throw Boom.unauthorized('Invalid authentication credentials');
       }
-    },
+    }
   };
 };

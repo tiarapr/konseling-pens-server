@@ -7,18 +7,28 @@ const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/;
 
 // Untuk payload create mahasiswa (dengan data user)
 const CreateMahasiswaPayloadSchema = Joi.object({
-  email: Joi.string().pattern(EMAIL_REGEX).required(),
-  phoneNumber: Joi.string().pattern(PHONE_REGEX).required(),
-  password: Joi.string().pattern(PASSWORD_REGEX).required(),
-  roleId: Joi.string().guid({ version: 'uuidv4' }).required(),
+  email: Joi.string().pattern(EMAIL_REGEX).required()
+    .messages({
+      'string.pattern.base': 'Format email tidak valid',
+      'any.required': 'Email wajib diisi'
+    }),
+  phoneNumber: Joi.string().pattern(PHONE_REGEX).required()
+    .messages({
+      'string.pattern.base': 'Nomor telepon harus diawali kode negara tanpa tanda + (contoh: 6281234567890)',
+      'any.required': 'Nomor telepon wajib diisi'
+    }),
+  password: Joi.string().pattern(PASSWORD_REGEX).required()
+    .messages({
+      'string.pattern.base': 'Password minimal 8 karakter dengan kombinasi huruf besar, kecil dan angka',
+      'any.required': 'Password wajib diisi'
+    }),
 
   nrp: Joi.string().pattern(/^\d{10,15}$/).required(),
   nama_lengkap: Joi.string().max(250).required(),
   program_studi_id: Joi.string().guid({ version: 'uuidv4' }).required(),
   tanggal_lahir: Joi.date().iso().required(),
   jenis_kelamin: Joi.string().valid('L', 'P').required(),
-  ktm_url: Joi.string().required(),
-  status_verifikasi_id: Joi.string().guid({ version: 'uuidv4' }).required(),
+  ktm_url: Joi.string().optional(),
 });
 
 // Untuk update mahasiswa

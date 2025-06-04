@@ -55,7 +55,14 @@ exports.up = (pgm) => {
         INSERT INTO permission (name) VALUES
         ('manage_users'),
         ('manage_roles'),
-        ('manage_permissions')
+        ('manage_permissions'),
+        ('manage_role_permissions'),
+        ('manage_program_studis'),
+        ('manage_departements'),
+        ('manage_admins'),
+        ('manage_konselors'),
+        ('manage_kemahasiswaans'),
+        ('manage_mahasiswas')
     `);
 };
 

@@ -1,6 +1,7 @@
 const {
   PostAuthenticationPayloadSchema,
   VerifyOTPPayloadSchema,
+  ResendOTPPayloadSchema,
   PutAuthenticationPayloadSchema,
   DeleteAuthenticationPayloadSchema,
 } = require("./schema");
@@ -15,6 +16,12 @@ const AuthenticationValidator = {
   },
   validateVerifyOTPPayload: (payload) => {
     const validationResult = VerifyOTPPayloadSchema.validate(payload);
+    if (validationResult.error) {
+      throw new InvariantError(validationResult.error.message);
+    }
+  },
+  validateResendOTPPayload: (payload) => {
+    const validationResult = ResendOTPPayloadSchema.validate(payload);
     if (validationResult.error) {
       throw new InvariantError(validationResult.error.message);
     }

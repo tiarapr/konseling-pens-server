@@ -66,7 +66,19 @@ exports.up = (pgm) => {
             r.id,
             p.id
         FROM role r
-        JOIN permission p ON p.name IN ('manage_users', 'manage_roles', 'manage_permissions')
+        JOIN permission p ON p.name IN 
+        (
+            'manage_users', 
+            'manage_roles', 
+            'manage_permissions',
+            'manage_role_permissions',
+            'manage_program_studis',
+            'manage_departements',
+            'manage_admins',
+            'manage_konselors',
+            'manage_kemahasiswaans',
+            'manage_mahasiswas'
+        )
         WHERE r.name = 'master';
     `);
 };

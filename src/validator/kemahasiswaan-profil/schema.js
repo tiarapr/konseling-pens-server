@@ -21,10 +21,30 @@ const CreateKemahasiswaanAccountPayloadSchema = Joi.object({
         'string.pattern.base': 'Password minimal 8 karakter dengan kombinasi huruf besar, kecil dan angka',
         'any.required': 'Password wajib diisi'
       }),
-  roleId: Joi.string().guid({ version: "uuidv4" }).required(),
   nip: Joi.string().max(30).required(),
   nama_lengkap: Joi.string().max(250).required(),
   jabatan: Joi.string().max(150).required(),
+});
+
+const UpdateKemahasiswaanAccountPayloadSchema = Joi.object({
+  email: Joi.string().pattern(EMAIL_REGEX).optional()
+      .messages({
+        'string.pattern.base': 'Format email tidak valid',
+        'any.required': 'Email wajib diisi'
+      }),
+    phoneNumber: Joi.string().pattern(PHONE_REGEX).optional()
+      .messages({
+        'string.pattern.base': 'Nomor telepon harus diawali kode negara tanpa tanda + (contoh: 6281234567890, 447123456789)',
+        'any.required': 'Nomor telepon wajib diisi'
+      }),
+    password: Joi.string().pattern(PASSWORD_REGEX).optional()
+      .messages({
+        'string.pattern.base': 'Password minimal 8 karakter dengan kombinasi huruf besar, kecil dan angka',
+        'any.required': 'Password wajib diisi'
+      }),
+  nip: Joi.string().max(30).optional(),
+  nama_lengkap: Joi.string().max(250).optional(),
+  jabatan: Joi.string().max(150).optional(),
 });
 
 const CreateKemahasiswaanProfilPayloadSchema = Joi.object({
@@ -42,6 +62,7 @@ const UpdateKemahasiswaanProfilPayloadSchema = Joi.object({
 
 module.exports = {
   CreateKemahasiswaanAccountPayloadSchema,
+  UpdateKemahasiswaanAccountPayloadSchema,
   CreateKemahasiswaanProfilPayloadSchema,
   UpdateKemahasiswaanProfilPayloadSchema,
 };

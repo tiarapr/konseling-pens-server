@@ -24,7 +24,6 @@ class CatatanKonselingService {
     });
   }
 
-  // Menambahkan catatan konseling baru
   async create(payload) {
     const {
       konseling_id,
@@ -35,21 +34,22 @@ class CatatanKonselingService {
       diagnosis,
       intervensi,
       tindak_lanjut,
-      konseling_lanjutan,
+      konseling_lanjutan, // tidak perlu dienkripsi
       created_by,
     } = payload;
 
+    // Pastikan bahwa konseling_lanjutan tidak dienkripsi
     const query = {
       text: `
-        INSERT INTO catatan_konseling (
-          konseling_id, deskripsi_masalah, usaha, kendala,
-          pencapaian, diagnosis, intervensi, tindak_lanjut,
-          konseling_lanjutan, created_by
-        ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-        )
-        RETURNING *
-      `,
+      INSERT INTO catatan_konseling (
+        konseling_id, deskripsi_masalah, usaha, kendala,
+        pencapaian, diagnosis, intervensi, tindak_lanjut,
+        konseling_lanjutan, created_by
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+      )
+      RETURNING *
+    `,
       values: [
         konseling_id,
         encrypt(deskripsi_masalah),
@@ -59,7 +59,7 @@ class CatatanKonselingService {
         encrypt(diagnosis),
         encrypt(intervensi),
         encrypt(tindak_lanjut),
-        encrypt(konseling_lanjutan),
+        konseling_lanjutan, // nilai asli tanpa enkripsi
         created_by,
       ],
     };
@@ -174,7 +174,7 @@ class CatatanKonselingService {
         encrypt(diagnosis ?? existing.diagnosis),
         encrypt(intervensi ?? existing.intervensi),
         encrypt(tindak_lanjut ?? existing.tindak_lanjut),
-        encrypt(konseling_lanjutan ?? existing.konseling_lanjutan),
+        konseling_lanjutan ?? existing.konseling_lanjutan,
         updated_by,
         id,
       ],

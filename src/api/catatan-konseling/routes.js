@@ -40,9 +40,14 @@ const routes = (handler) => [
         handler: handler.getOwnCatatanKonselingByKonselingIdHandler,
         options: {
             auth: 'basicAndJwtStrategy',
-            pre: [
-                { method: checkPermission('view_own_catatan_konseling') },
-            ],
+        },
+    },
+    {
+        method: 'GET',
+        path: '/catatan-konseling/own/{id}',
+        handler: handler.getOwnCatatanKonselingByIdHandler,
+        options: {
+            auth: 'basicAndJwtStrategy',
         },
     },
     {

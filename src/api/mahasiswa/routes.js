@@ -29,6 +29,36 @@ const routes = (handler) => [
     },
     {
         method: 'GET',
+        path: '/mahasiswa/janji-temu',
+        handler: handler.getMahasiswaWithJanjiTemuHandler,
+        options: {
+            auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission(['view_all_mahasiswa_with_janji_temu', 'manage_mahasiswas']) }
+            ]
+        },
+    },
+    {
+        method: 'GET',
+        path: '/mahasiswa/my',
+        handler: handler.getMahasiswaByKonselorIdHandler,
+        options: {
+            auth: 'basicAndJwtStrategy'
+        },
+    },
+    {
+        method: 'GET',
+        path: '/mahasiswa/{nrp}/rekam-medis',
+        handler: handler.getRekamMedisByNrpHandler,
+        options: {
+            auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission(['manage_rekam_medis']) }
+            ]
+        },
+    },
+    {
+        method: 'GET',
         path: '/mahasiswa/me',
         handler: handler.getOwnMahasiswaHandler,
         options: {
@@ -61,7 +91,7 @@ const routes = (handler) => [
         },
     },
     {
-        method: 'PUT',
+        method: 'PATCH',
         path: '/mahasiswa/{id}/verifikasi',
         handler: handler.verifyMahasiswaHandler,
         options: {
@@ -76,21 +106,11 @@ const routes = (handler) => [
         path: '/mahasiswa/{id}/verifikasi-ulang',
         handler: handler.requestReVerificationHandler,
         options: {
-            auth: 'basicAndJwtStrategy',
-            payload: {
-                allow: 'multipart/form-data',
-                multipart: true,
-                output: 'stream',
-                parse: true,
-                maxBytes: 10 * 1024 * 1024, // max 10MB
-            },
-            pre: [
-                { method: checkPermission('reverify_mahasiswa') }
-            ]
+            auth: 'basicAndJwtStrategy'
         },
     },
     {
-        method: 'PUT',
+        method: 'PATCH',
         path: '/mahasiswa/{id}',
         handler: handler.updateMahasiswaHandler,
         options: {
@@ -118,31 +138,6 @@ const routes = (handler) => [
             ]
         },
     },
-    // {
-    //     method: 'POST',
-    //     path: '/mahasiswa/upload-ktm',
-    //     handler: handler.uploadKtmHandler,
-    //     options: {
-    //         auth: 'basicAndJwtStrategy',
-    //         payload: {
-    //             maxBytes: 10 * 1024 * 1024, // Max size 10MB
-    //             output: 'stream',
-    //             parse: true,
-    //             allow: 'multipart/form-data',
-    //         },
-    //     },
-    // },
-    // {
-    //     method: 'GET',
-    //     path: '/mahasiswa/{nrp}/rekammedis',
-    //     handler: handler.getRekamMedisByNrpHandler,
-    //     options: {
-    //         auth: 'basicAndJwtStrategy',
-    // pre: [
-    //     { method: checkPermission('view_rekam_medis_mahasiswa') }
-    // ]
-    //     },
-    // }
 ];
 
 module.exports = routes;

@@ -56,8 +56,9 @@ exports.up = (pgm) => {
         VALUES
         ('Departemen Teknik Elektro'),
         ('Departemen Teknik Informatika dan Komputer'),
-        ('Departemen Teknik Mekanika Energi'),
-        ('Departemen Teknologi Multimedia Kreatif');
+        ('Departemen Teknik Mekanika dan Energi'),
+        ('Departemen Teknologi Multimedia Kreatif'),
+        ('Departemen Program Pendidikan Jarak Jauh');
     `);
 };
 

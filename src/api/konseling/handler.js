@@ -4,8 +4,10 @@ const UserService = require('../../services/UserService');
 const WhatsAppService = require('../../services/WhatsAppService');
 
 class KonselingHandler {
-    constructor(service, validator) {
+    constructor(service, statusService, konselorProfileService, validator) {
         this._service = service;
+        this._statusService = statusService;
+        this._konselorProfileService = konselorProfileService;
         this._validator = validator;
         this._mahasiswaService = new MahasiswaService();
         this._userService = new UserService();
@@ -13,20 +15,25 @@ class KonselingHandler {
 
         // Bind methods
         this.getAllKonselingHandler = this.getAllKonselingHandler.bind(this);
+        this.getMyKonselingHandler = this.getMyKonselingHandler.bind(this);
         this.getKonselingByIdHandler = this.getKonselingByIdHandler.bind(this);
+        this.getKonselingByKonselorIdHandler = this.getKonselingByKonselorIdHandler.bind(this);
         this.postKonselingHandler = this.postKonselingHandler.bind(this);
         this.updateKonselingHandler = this.updateKonselingHandler.bind(this);
         this.updateStatusKonselingHandler = this.updateStatusKonselingHandler.bind(this);
         this.konfirmasiKehadiranHandler = this.konfirmasiKehadiranHandler.bind(this);
         this.deleteKonselingHandler = this.deleteKonselingHandler.bind(this);
+        this.rescheduleKonselingHandler = this.rescheduleKonselingHandler.bind(this);
     }
 
     // Create new konseling
     async postKonselingHandler(request, h) {
         try {
             this._validator.validateCreatePayload(request.payload);
-            const { janji_temu_id, konselor_profil_id, tanggal_konseling, jam_mulai, jam_selesai, lokasi, status_kehadiran, tanggal_konfirmasi, status_id } = request.payload;
+            const { janji_temu_id, konselor_profil_id, tanggal_konseling, jam_mulai, jam_selesai, lokasi, status_kehadiran, tanggal_konfirmasi } = request.payload;
 
+            const status = await this._statusService.getByKodeStatus('dijadwalkan');
+            const statusId = status.id;
             const createdBy = request.auth.credentials.jwt.user.id;
 
             // Step 1: Buat konseling
@@ -39,7 +46,7 @@ class KonselingHandler {
                 lokasi,
                 status_kehadiran,
                 tanggal_konfirmasi,
-                status_id,
+                status_id: statusId,
                 created_by: createdBy,
             });
 
@@ -140,6 +147,28 @@ class KonselingHandler {
         }
     }
 
+    async getKonselingByKonselorIdHandler(request, h) {
+        try {
+            const userId = request.auth.credentials.jwt.user.id;
+
+            const konselor = await this._konselorProfileService.getByUserId(userId);
+            if (!konselor) {
+                throw new ClientError('Data konselor tidak ditemukan', 404);
+            }
+
+            const konselingList = await this._service.getByKonselorId(konselor.id); 
+
+            return {
+                status: 'success',
+                data: {
+                    konseling: konselingList,
+                },
+            };
+        } catch (error) {
+            return this._handleError(h, error);
+        }
+    }
+
     // Update konseling by ID
     async updateKonselingHandler(request, h) {
         try {
@@ -198,15 +227,65 @@ class KonselingHandler {
     async konfirmasiKehadiranHandler(request, h) {
         try {
             const { id } = request.params;
-            const { status_kehadiran, status_id } = request.payload;
+            const { status_kehadiran } = request.payload;
+
+            // Default status_id to the existing one or keep it
+            let status_id = request.payload.status_id;
 
             const updatedBy = request.auth.credentials.jwt.user.id;
 
-            const updatedKonseling = await this._service.konfirmasiKehadiran(id, { status_kehadiran, status_id, updated_by: updatedBy });
+            // If attendance status is 'false', set the status_id to 'batal_otomatis'
+            if (status_kehadiran === false) {
+                const status = await this._statusService.getByKodeStatus('batal_otomatis');
+                status_id = status.id;  // Automatically set status_id to 'batal_otomatis'
+            }
+
+            const updatedKonseling = await this._service.konfirmasiKehadiran(id, {
+                status_kehadiran,
+                status_id,
+                updated_by: updatedBy
+            });
 
             return {
                 status: 'success',
                 message: 'Kehadiran konseling berhasil dikonfirmasi',
+                data: {
+                    konseling: updatedKonseling,
+                },
+            };
+        } catch (error) {
+            return this._handleError(h, error);
+        }
+    }
+
+    async rescheduleKonselingHandler(request, h) {
+        try {
+            const { id } = request.params;
+
+            this._validator.validateUpdatePayload(request.payload);
+
+            const { tanggal_konseling, jam_mulai, jam_selesai, lokasi, status_kehadiran, tanggal_konfirmasi, konselor_profil_id } = request.payload;
+
+            const status = await this._statusService.getByKodeStatus('didijadwalkan_ulang');
+            const statusId = status.id;
+
+            const updatedBy = request.auth.credentials.jwt.user.id;
+
+            const updatedKonseling = await this._service.update(id, {
+                tanggal_konseling,
+                jam_mulai,
+                jam_selesai,
+                lokasi,
+                status_kehadiran,
+                tanggal_konfirmasi,
+                status_id: statusId,
+                konselor_profil_id,
+                updated_by: updatedBy,
+            });
+
+            return {
+                status: 'success',
+                message: 'Konseling successfully updated',
                 data: {
                     konseling: updatedKonseling,
                 },

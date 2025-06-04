@@ -3,7 +3,7 @@ const checkPermission = require("../../middleware/checkPermission");
 const routes = (handler) => [
     {
         method: "POST",
-        path: "/rating",
+        path: "/konseling/{id}/rating",
         handler: handler.addRatingHandler,
         options: {
             auth: 'basicAndJwtStrategy',

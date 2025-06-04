@@ -8,12 +8,6 @@ class otpervice {
     }
 
     async saveOTP(email, otp, expiry) {
-        // Pertama tandai semua OTP sebelumnya sebagai expired
-        await this._pool.query(
-            'UPDATE otp SET is_used = TRUE WHERE email = $1 AND is_used = FALSE',
-            [email]
-        );
-
         // Simpan OTP baru
         const query = {
             text: 'INSERT INTO otp(email, otp_code, expires_at) VALUES($1, $2, $3)',

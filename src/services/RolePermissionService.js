@@ -135,6 +135,28 @@ class RolePermissionService {
     return result.rows;
   }
 
+  async getAllRoleWithPermissions() {
+    const query = {
+      text: `
+      SELECT 
+        r.id AS role_id,
+        r.name AS role_name,
+        json_agg(json_build_object(
+          'id', rp.id,
+          'permission_id', p.id,
+          'permission_name', p.name
+        ) ORDER BY p.name) AS permissions
+      FROM role r
+      LEFT JOIN role_permission rp ON r.id = rp.role_id AND rp.deleted_at IS NULL
+      LEFT JOIN permission p ON rp.permission_id = p.id AND p.deleted_at IS NULL
+      GROUP BY r.id, r.name
+      ORDER BY r.name
+    `
+    };
+    const result = await this._pool.query(query);
+    return result.rows;
+  }
+
   async revokePermission({ roleId, permissionId, userId }) {
     await this.verifyPermissionAssignment(roleId, permissionId);
 

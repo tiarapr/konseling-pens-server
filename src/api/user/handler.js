@@ -25,12 +25,15 @@ class UserHandler {
   }
 
   async postUserHandler(request, h) {
+    const client = await this._service.getDatabaseClient();
+
     try {
+      await client.query('BEGIN');
+
       this._validator.validateUserPayload(request.payload);
       const { email, phoneNumber, password, roleId } = request.payload;
 
-      // Add user with is_verified set to false by default
-      const userId = await this._service.addUser({
+      const userId = await this._service.addUser(client, {
         email,
         phoneNumber,
         password,
@@ -38,11 +41,11 @@ class UserHandler {
         roleId,
       });
 
-      // Generate verification token
-      const verificationToken = await this._emailVerificationService.generateToken(userId);
+      const verificationToken = await this._emailVerificationService.generateToken(userId, client); // gunakan client jika perlu
 
-      // Send verification email
       await this._mailSender.sendVerificationEmail(email, verificationToken);
+
+      await client.query('COMMIT');
 
       return h.response({
         status: "success",
@@ -50,23 +53,33 @@ class UserHandler {
         data: { userId },
       }).code(201);
     } catch (error) {
+      await client.query('ROLLBACK');
       return this._handleError(error, h, "Failed to add user");
+    } finally {
+      client.release();
     }
   }
 
   async verifyEmailHandler(request, h) {
-    try {
-      const { token } = request.query;
+    const client = await this._service.getDatabaseClient();
 
-      // Verify the token and update user's verification status
-      const userId = await this._emailVerificationService.verifyEmail(token);
+    try {
+      await client.query('BEGIN');
+
+      const { token } = request.payload;
+
+      if (!token) {
+        throw new ClientError('Token is required');
+      }
+
+      const userId = await this._emailVerificationService.verifyEmail(client, token);
+
+      await client.query('COMMIT');
 
       return {
         status: "success",
         message: "Email successfully verified",
-        data: {
-          user_id: userId,
-        }
+        data: { user_id: userId }
       };
     } catch (error) {
       return this._handleError(error, h, "Failed to verify email");
@@ -74,7 +87,11 @@ class UserHandler {
   }
 
   async resendVerificationEmailHandler(request, h) {
+    const client = await this._service.getDatabaseClient();
+
     try {
+      await client.query('BEGIN')
+
       const { email } = request.payload;
 
       // 1. Cari user berdasarkan email
@@ -92,10 +109,12 @@ class UserHandler {
       await this._emailVerificationService.invalidateOldTokens(user.id);
 
       // 3. Generate token baru
-      const verificationToken = await this._emailVerificationService.generateToken(user.id);
+      const verificationToken = await this._emailVerificationService.generateToken(client, user.id);
 
       // 4. Kirim ulang email
       await this._mailSender.sendVerificationEmail(user.email, verificationToken);
+
+      await client.query('COMMIT')
 
       return h.response({
         status: 'success',
@@ -151,7 +170,11 @@ class UserHandler {
   }
 
   async updateUserEmailHandler(request, h) {
+    const client = await this._service.getDatabaseClient();
+
     try {
+      await client.query('BEGIN')
+
       const { id } = request.params;
       const { email } = request.payload;
       const userId = request.auth.credentials.jwt.user.id;
@@ -161,24 +184,25 @@ class UserHandler {
       }
 
       this._validator.validateUpdateEmailPayload({ email });
-
-      // Pastikan email baru tidak digunakan user lain
-      await this._service.verifyNewEmail(email);
-
-      // Update email user
+      await this._service.verifyNewEmail(client, email);
       await this._service.updateUserEmail(id, email, userId);
 
-      // Generate token verifikasi baru
-      const verificationToken = await this._emailVerificationService.generateToken(id);
+      const verificationToken = await this._emailVerificationService.generateToken(client, id);
       await this._mailSender.sendVerificationEmail(email, verificationToken);
+
+      await client.query('COMMIT')
 
       return h.response({
         status: 'success',
         message: 'Email updated successfully. Please verify your new email.',
+        requiresLogout: true // Flag khusus untuk frontend
       }).code(200);
 
     } catch (error) {
+      await client.query('ROLLBACK');
       return this._handleError(error, h, 'Failed to update email');
+    } finally {
+      client.release();
     }
   }
 

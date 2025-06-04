@@ -9,6 +9,10 @@ class AdminProfilService {
     });
   }
 
+  getDatabaseClient() {
+    return this._pool.connect();
+  }
+
   async checkUserIdExists(userId) {
     const query = {
       text: `
@@ -44,7 +48,7 @@ class AdminProfilService {
     }
   }
 
-  async create({ nama_lengkap, user_id, created_by, photo_url = null }) {
+  async create(client, { nama_lengkap, user_id, created_by, photo_url = null }) {
     const query = {
       text: `
         INSERT INTO admin_profil (
@@ -55,10 +59,54 @@ class AdminProfilService {
       values: [nama_lengkap, user_id, created_by, photo_url],
     };
 
-    const result = await this._pool.query(query);
+    const result = await client.query(query);
 
     if (result.rowCount === 0) {
       throw new InvariantError("Failed to create the admin profile.");
+    }
+
+    return result.rows[0];
+  }
+
+  async getAllAdminWithAccount() {
+    const query = {
+      text: `
+      SELECT ap.*, u.email, u.phone_number, u.is_verified, r.name AS role_name
+      FROM admin_profil ap
+      JOIN "user" u ON ap.user_id = u.id
+      JOIN role_user ru ON u.id = ru.user_id
+      JOIN role r ON ru.role_id = r.id
+      WHERE ap.deleted_at IS NULL AND u.deleted_at IS NULL
+      AND r.name = 'admin'
+      ORDER BY ap.created_at DESC
+    `,
+    };
+
+    const result = await this._pool.query(query);
+    return result.rows;
+  }
+
+  async getAdminAccountByUserId(userId) {
+    const query = {
+      text: `
+      SELECT ap.*, u.email, u.phone_number, u.is_verified, r.name AS role_name
+      FROM admin_profil ap
+      JOIN "user" u ON ap.user_id = u.id
+      JOIN role_user ru ON u.id = ru.user_id
+      JOIN role r ON ru.role_id = r.id
+      WHERE ap.user_id = $1
+        AND ap.deleted_at IS NULL
+        AND u.deleted_at IS NULL
+        AND r.name = 'admin'
+      LIMIT 1
+    `,
+      values: [userId],
+    };
+
+    const result = await this._pool.query(query);
+
+    if (result.rowCount === 0) {
+      throw new NotFoundError("Admin account not found for the given user ID.");
     }
 
     return result.rows[0];
@@ -103,7 +151,7 @@ class AdminProfilService {
     return result.rows[0];
   }
 
-  async update(id, { nama_lengkap, photo_url, updated_by }) {
+  async update(id, { nama_lengkap, photo_url, updated_by }, client) {
     const existing = await this.getById(id);
 
     const query = {
@@ -124,7 +172,7 @@ class AdminProfilService {
       ],
     };
 
-    const result = await this._pool.query(query);
+    const result = await client.query(query);
 
     if (result.rowCount === 0) {
       throw new NotFoundError("Admin profile not found or has already been deleted.");
@@ -133,7 +181,7 @@ class AdminProfilService {
     return result.rows[0];
   }
 
-  async softDelete(id, deleted_by) {
+  async softDelete(client, id, deleted_by) {
     const query = {
       text: `
         UPDATE admin_profil
@@ -145,7 +193,7 @@ class AdminProfilService {
       values: [deleted_by, id],
     };
 
-    const result = await this._pool.query(query);
+    const result = await client.query(query);
 
     if (result.rowCount === 0) {
       throw new NotFoundError("Admin profile not found or has already been deleted.");
@@ -154,7 +202,7 @@ class AdminProfilService {
     return result.rows[0];
   }
 
-  async restore(id, restored_by) {
+  async restore(client, id, restored_by) {
     const query = {
       text: `
         UPDATE admin_profil
@@ -168,7 +216,7 @@ class AdminProfilService {
       values: [restored_by, id],
     };
 
-    const result = await this._pool.query(query);
+    const result = await client.query(query);
 
     if (result.rowCount === 0) {
       throw new NotFoundError("Admin profile not found or has not been deleted.");

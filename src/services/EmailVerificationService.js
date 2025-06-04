@@ -10,19 +10,22 @@ class EmailVerificationService {
         this._tokenExpirationHours = 24;
     }
 
-    async generateToken(userId) {
+    // getDatabaseClient() {
+    //     return this._pool.connect();
+    // }
+
+    async generateToken(client, userId) {
         const token = nanoid(32);
         const expiresAt = new Date();
         expiresAt.setHours(expiresAt.getHours() + this._tokenExpirationHours);
 
         const query = {
             text: `INSERT INTO email_verification_token (user_id, token, expires_at) 
-             VALUES ($1, $2, $3) 
-             RETURNING token`,
+               VALUES ($1, $2, $3) RETURNING token`,
             values: [userId, token, expiresAt],
         };
 
-        const result = await this._pool.query(query);
+        const result = await client.query(query);
 
         if (!result.rows.length) {
             throw new InvariantError("Failed to generate verification token");
@@ -31,7 +34,7 @@ class EmailVerificationService {
         return result.rows[0].token;
     }
 
-    async verifyEmail(token) {
+    async verifyEmail(client, token) {
         const query = {
             text: `SELECT user_id, expires_at 
              FROM email_verification_token 
@@ -39,7 +42,7 @@ class EmailVerificationService {
             values: [token],
         };
 
-        const result = await this._pool.query(query);
+        const result = await client.query(query);
 
         if (!result.rows.length) {
             throw new InvariantError("Invalid or expired verification token");
@@ -51,12 +54,12 @@ class EmailVerificationService {
             throw new InvariantError("Verification token has expired");
         }
 
-        await this._pool.query({
+        await client.query({
             text: 'UPDATE "user" SET is_verified = true, verified_at = NOW() WHERE id = $1',
             values: [user_id],
         });
 
-        await this._pool.query({
+        await client.query({
             text: "UPDATE email_verification_token SET used_at = NOW() WHERE token = $1",
             values: [token],
         });

@@ -43,11 +43,11 @@ exports.up = (pgm) => {
     // Seed data status
     pgm.sql(`
         INSERT INTO status (kode_status, label, warna, urutan) VALUES
-        ('jadwalkan', 'Dijadwalkan', 'info', 1),
+        ('dijadwalkan', 'Didijadwalkan', 'info', 1),
         ('berlangsung', 'Berlangsung', 'primary', 2),
         ('selesai', 'Selesai', 'success', 3),
         ('dibatalkan', 'Dibatalkan', 'error', 4),
-        ('dijadwalkan_ulang', 'Dijadwalkan Ulang', 'warning', 5),
+        ('didijadwalkan_ulang', 'Didijadwalkan Ulang', 'warning', 5),
         ('batal_otomatis', 'Dibatalkan Otomatis', 'dark', 6);
     `);
 };

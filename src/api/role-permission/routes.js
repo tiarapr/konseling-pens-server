@@ -46,6 +46,17 @@ const routes = (handler) => [
         },
     },
     {
+        method: 'GET',
+        path: '/roles-with-permissions',
+        handler: handler.getAllRoleWithPermissionsHandler,
+        options: {
+            auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('manage_role_permissions') }
+            ]
+        }
+    },
+    {
         method: 'DELETE',
         path: '/role-permissions/{id}',
         handler: handler.deleteRolePermissionHandler,

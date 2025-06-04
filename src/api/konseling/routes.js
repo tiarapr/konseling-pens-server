@@ -34,21 +34,39 @@ const routes = (handler) => [
             ]
         },
     },
+    // MILIK KONSELOR
+    {
+        method: 'GET',
+        path: '/konseling/my',
+        handler: handler.getKonselingByKonselorIdHandler,
+        options: {
+            auth: 'basicAndJwtStrategy',
+        },
+    },
+    // DATA KONSELING MILIK MAHASISWA
     {
         method: 'GET',
         path: '/konseling/me',
         handler: handler.getMyKonselingHandler,
         options: {
             auth: 'basicAndJwtStrategy',
-            pre: [
-                { method: checkPermission('view_own_konseling') }
-            ]
         },
     },
     {
         method: 'PUT',
         path: '/konseling/{id}',
         handler: handler.updateKonselingHandler,
+        options: {
+            auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission('update_konseling', 'manage_konselings') }
+            ]
+        },
+    },
+    {
+        method: 'PUT',
+        path: '/konseling/{id}/reschedule',
+        handler: handler.rescheduleKonselingHandler,
         options: {
             auth: 'basicAndJwtStrategy',
             pre: [
@@ -73,9 +91,6 @@ const routes = (handler) => [
         handler: handler.konfirmasiKehadiranHandler,
         options: {
             auth: 'basicAndJwtStrategy',
-            pre: [
-                { method: checkPermission('confirm_kehadiran_konseling', 'manage_konselings') }
-            ]
         },
     },
     {

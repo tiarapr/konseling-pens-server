@@ -4,7 +4,6 @@ const datePattern = /^\d{4}-\d{2}-\d{2}$/; // YYYY-MM-DD
 const timeFormat = /^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/; // HH:mm / HH:mm:ss
 
 const CreateKonselingPayloadSchema = Joi.object({
-  status_id: Joi.string().guid({ version: "uuidv4" }).required(),
   janji_temu_id: Joi.string().guid({ version: "uuidv4" }).required(),
   konselor_profil_id: Joi.string().guid({ version: "uuidv4" }).required(),
   tanggal_konseling: Joi.string().pattern(datePattern).required(),

@@ -21,8 +21,26 @@ const CreateAdminAccountPayloadSchema = Joi.object({
       'string.pattern.base': 'Password minimal 8 karakter dengan kombinasi huruf besar, kecil dan angka',
       'any.required': 'Password wajib diisi'
     }),
-  roleId: Joi.string().guid({ version: "uuidv4" }).required(),
   nama_lengkap: Joi.string().max(250).required(),
+});
+
+const UpdateAdminAccountPayloadSchema = Joi.object({
+  email: Joi.string().pattern(EMAIL_REGEX).optional()
+    .messages({
+      'string.pattern.base': 'Format email tidak valid',
+      'any.required': 'Email wajib diisi'
+    }),
+  phoneNumber: Joi.string().pattern(PHONE_REGEX).optional()
+    .messages({
+      'string.pattern.base': 'Nomor telepon harus diawali kode negara tanpa tanda + (contoh: 6281234567890, 447123456789)',
+      'any.required': 'Nomor telepon wajib diisi'
+    }),
+  password: Joi.string().pattern(PASSWORD_REGEX).optional()
+    .messages({
+      'string.pattern.base': 'Password minimal 8 karakter dengan kombinasi huruf besar, kecil dan angka',
+      'any.required': 'Password wajib diisi'
+    }),
+  nama_lengkap: Joi.string().max(250).optional(),
 });
 
 const CreateAdminProfilPayloadSchema = Joi.object({
@@ -37,6 +55,7 @@ const UpdateAdminProfilPayloadSchema = Joi.object({
 
 module.exports = {
   CreateAdminAccountPayloadSchema,
+  UpdateAdminAccountPayloadSchema,
   CreateAdminProfilPayloadSchema,
   UpdateAdminProfilPayloadSchema,
 };

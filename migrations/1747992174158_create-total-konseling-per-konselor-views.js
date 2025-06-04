@@ -8,7 +8,7 @@ exports.shorthands = undefined;
  */
 exports.up = (pgm) => {
     pgm.sql(`
-        CREATE OR REPLACE VIEW v_total_konseling_per_konselor AS
+        CREATE OR REPLACE VIEW v_total_sesi_konseling_per_konselor AS
         SELECT
         kp.id AS konselor_id,
         kp.nama_lengkap AS nama_konselor,

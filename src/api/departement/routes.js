@@ -6,10 +6,7 @@ const routes = (handler) => [
         path: '/departement',
         handler: handler.getDepartementsHandler,
         options: {
-            auth: 'basicAndJwtStrategy',
-            pre: [
-                { method: checkPermission('view_all_departement', 'manage_departements') }
-            ]
+            auth: 'basic',
         },
     },
     {

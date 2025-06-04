@@ -1,15 +1,70 @@
 const checkPermission = require("../../middleware/checkPermission");
 
 const routes = (handler) => [
+    // KONSELOR ACCOUNT
     {
         method: 'POST',
-        path: '/konselor',
+        path: '/konselor/account',
         handler: handler.createKonselorAccountHandler,
         options: {
             auth: 'basicAndJwtStrategy',
             pre: [
                 { method: checkPermission(['create_konselor_account', 'manage_konselors']) }
             ]
+        },
+    },
+    {
+        method: 'GET',
+        path: '/konselor/account/{userId}',
+        handler: handler.getKonselorAccountByUserIdHandler,
+        options: {
+            auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission(['view_konselor_account_by_user', 'manage_konselors']) }
+            ]
+        },
+    },
+    {
+        method: 'PATCH',
+        path: '/konselor/account/{id}',
+        handler: handler.updateKonselorAccountHandler,
+        options: {
+            auth: 'basicAndJwtStrategy',
+            pre: [
+                { method: checkPermission(['update_konselor_account', 'manage_konselors']) }
+            ]
+        },
+    },
+    {
+        method: "DELETE",
+        path: "/konselor/account/{id}",
+        handler: handler.deleteKonselorAccountHandler,
+        options: {
+            auth: "basicAndJwtStrategy",
+            pre: [
+                { method: checkPermission(['delete_konselor_account', 'manage_konselors']) }
+            ]
+        },
+    },
+    {
+        method: "PUT",
+        path: "/konselor/account/{id}/restore",
+        handler: handler.restoreKonselorAccountHandler,
+        options: {
+            auth: "basicAndJwtStrategy",
+            pre: [
+                { method: checkPermission(['restore_konselor_account', 'manage_konselors']) }
+            ]
+        },
+    },
+
+    // KONSELOR PROFIL
+    {
+        method: "GET",
+        path: "/konselor",
+        handler: handler.getKonselorProfilWithAccountHandler,
+        options: {
+            auth: "basicAndJwtStrategy",
         },
     },
     {
@@ -54,6 +109,14 @@ const routes = (handler) => [
     },
     {
         method: "GET",
+        path: '/konselor-profil/me',
+        handler: handler.getOwnKonselorProfilHandler,
+        options: {
+            auth: "basicAndJwtStrategy",
+        }
+    },
+    {
+        method: "GET",
         path: "/konselor-profil/{id}",
         handler: handler.getKonselorProfilByIdHandler,
         options: {
@@ -82,28 +145,6 @@ const routes = (handler) => [
             auth: "basicAndJwtStrategy",
             pre: [
                 { method: checkPermission(['update_konselor_profil', 'manage_konselors']) }
-            ]
-        },
-    },
-    {
-        method: "DELETE",
-        path: "/konselor-profil/{id}",
-        handler: handler.deleteKonselorProfilHandler,
-        options: {
-            auth: "basicAndJwtStrategy",
-            pre: [
-                { method: checkPermission(['delete_konselor_profil', 'manage_konselors']) }
-            ]
-        },
-    },
-    {
-        method: "PUT",
-        path: "/konselor-profil/{id}/restore",
-        handler: handler.restoreKonselorProfilHandler,
-        options: {
-            auth: "basicAndJwtStrategy",
-            pre: [
-                { method: checkPermission(['restore_konselor_profil', 'manage_konselors']) }
             ]
         },
     },

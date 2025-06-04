@@ -7,9 +7,6 @@ const routes = (handler) => [
     handler: handler.addRoleHandler,
     options: {
       auth: 'basic',
-      pre: [
-        { method: checkPermission('manage_roles') }
-      ]
     },
   },
   {

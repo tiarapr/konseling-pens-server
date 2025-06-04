@@ -1,6 +1,6 @@
 const axios = require('axios');
-const janjiTemuTemplates = require('../notifications/janji-temu/JanjiTemuCreatedWhatsappTemplate');
-const generateJanjiTemuUpdatedWhatsAppMessage = require('../notifications/janji-temu/JanjiTemuUpdateWhatsappTemplate');
+const janjiTemuTemplates = require('../../draft migrations/JanjiTemuCreatedWhatsappTemplate');
+const generateJanjiTemuUpdatedWhatsAppMessage = require('../../draft migrations/JanjiTemuUpdateWhatsappTemplate');
 
 class WhatsAppService {
   constructor() {

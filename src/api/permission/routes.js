@@ -46,9 +46,9 @@ const routes = (handler) => [
     },
   },
   {
-    method: 'PATCH',
+    method: 'PUT',
     path: '/permissions/{id}',
-    handler: handler.putPermissionHandler,
+    handler: handler.updatePermissionHandler,
     options: {
       auth: 'basicAndJwtStrategy',
     },

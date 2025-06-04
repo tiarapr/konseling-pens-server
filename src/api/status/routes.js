@@ -7,9 +7,6 @@ const routes = (handler) => [
         handler: handler.getAllStatusHandler,
         options: {
             auth: 'basicAndJwtStrategy',
-            pre: [
-                { method: checkPermission(['view_all_status', 'manage_status']) }
-            ]
         },
     },
     {

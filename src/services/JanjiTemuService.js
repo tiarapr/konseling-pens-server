@@ -24,7 +24,8 @@ class JanjiTemuService {
           jt.nomor_tiket,
           m.nama_lengkap AS nama_mahasiswa,
           jt.nrp,
-          jt.status,
+          jt.preferensi_konselor_id,
+          kp.nama_lengkap AS nama_konselor,
           jt.tipe_konsultasi,
           jt.jadwal_utama_tanggal,
           jt.jadwal_utama_jam_mulai,
@@ -32,6 +33,8 @@ class JanjiTemuService {
           jt.jadwal_alternatif_tanggal,
           jt.jadwal_alternatif_jam_mulai,
           jt.jadwal_alternatif_jam_selesai,
+          jt.status,
+          jt.alasan_penolakan,
           jt.tanggal_pengajuan,
           jt.status_changed_at,
           jt.status_changed_by,
@@ -39,8 +42,7 @@ class JanjiTemuService {
           jt.updated_by,
           jt.updated_at,
           jt.deleted_by,
-          jt.deleted_at,
-          kp.nama_lengkap AS nama_konselor
+          jt.deleted_at
         FROM janji_temu jt
         JOIN mahasiswa m ON jt.nrp = m.nrp
         LEFT JOIN konselor_profil kp ON jt.preferensi_konselor_id = kp.id
@@ -96,10 +98,42 @@ class JanjiTemuService {
     }
 
     async getByNrp(nrp) {
-        const result = await this._pool.query(
-            'SELECT * FROM janji_temu WHERE nrp = $1 AND is_deleted = false ORDER BY created_at DESC',
-            [nrp]
-        );
+        const query = {
+            text: `
+      SELECT 
+        jt.id,
+        jt.nomor_tiket,
+        m.nama_lengkap AS nama_mahasiswa,
+        jt.nrp,
+        jt.preferensi_konselor_id,
+        kp.nama_lengkap AS nama_konselor,
+        jt.tipe_konsultasi,
+        jt.jadwal_utama_tanggal,
+        jt.jadwal_utama_jam_mulai,
+        jt.jadwal_utama_jam_selesai,
+        jt.jadwal_alternatif_tanggal,
+        jt.jadwal_alternatif_jam_mulai,
+        jt.jadwal_alternatif_jam_selesai,
+        jt.status,
+        jt.alasan_penolakan,
+        jt.tanggal_pengajuan,
+        jt.status_changed_at,
+        jt.status_changed_by,
+        jt.created_by,
+        jt.updated_by,
+        jt.updated_at,
+        jt.deleted_by,
+        jt.deleted_at
+      FROM janji_temu jt
+      JOIN mahasiswa m ON jt.nrp = m.nrp
+      LEFT JOIN konselor_profil kp ON jt.preferensi_konselor_id = kp.id
+      WHERE jt.nrp = $1 AND jt.deleted_at IS NULL
+      ORDER BY jt.tanggal_pengajuan DESC
+    `,
+            values: [nrp],
+        };
+
+        const result = await this._pool.query(query);
         return result.rows;
     }
 

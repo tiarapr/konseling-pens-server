@@ -8,37 +8,8 @@ class PermissionHandler {
     this.getPermissionsHandler = this.getPermissionsHandler.bind(this);
     this.getPermissionByIdHandler = this.getPermissionByIdHandler.bind(this);
     this.postPermissionHandler = this.postPermissionHandler.bind(this);
-    this.putPermissionHandler = this.putPermissionHandler.bind(this);
+    this.updatePermissionHandler = this.updatePermissionHandler.bind(this);
     this.deletePermissionHandler = this.deletePermissionHandler.bind(this);
-  }
-
-  async getPermissionsHandler(request, h) {
-    try {
-      const permissions = await this._service.getAll();
-      return {
-        status: 'success',
-        data: {
-          permissions,
-        },
-      };
-    } catch (error) {
-      return this._handleServerError(h, error);
-    }
-  }
-
-  async getPermissionByIdHandler(request, h) {
-    try {
-      const { id } = request.params;
-      const permission = await this._service.getById(id);
-      return {
-        status: 'success',
-        data: {
-          permission,
-        },
-      };
-    } catch (error) {
-      return this._handleError(h, error);
-    }
   }
 
   async postPermissionHandler(request, h) {
@@ -95,24 +66,63 @@ class PermissionHandler {
     }
   }
 
-  async putPermissionHandler(request, h) {
+  async getPermissionsHandler(request, h) {
     try {
+      const permissions = await this._service.getAll();
+      return {
+        status: 'success',
+        data: {
+          permissions,
+        },
+      };
+    } catch (error) {
+      return this._handleServerError(h, error);
+    }
+  }
+
+  async getPermissionByIdHandler(request, h) {
+    try {
+      const { id } = request.params;
+      const permission = await this._service.getById(id);
+      return {
+        status: 'success',
+        data: {
+          permission,
+        },
+      };
+    } catch (error) {
+      return this._handleError(h, error);
+    }
+  }
+
+  async updatePermissionHandler(request, h) {
+    try {
+      // Validasi payload
       this._validator.validatePermissionPayload(request.payload);
+
       const { id } = request.params;
       const { name } = request.payload;
 
+      // Ambil ID user dari JWT token
       const updatedBy = request.auth.credentials.jwt.user.id;
 
-      const result = await this._service.update(id, { name, updated_by: updatedBy });
+      // Update permission di database
+      const result = await this._service.update(id, {
+        name,
+        updated_by: updatedBy,
+      });
 
-      return {
+      // Beri respons sukses
+      return h.response({
         status: 'success',
         message: 'Permission berhasil diperbarui',
         data: {
           permission: result,
         },
-      };
+      }).code(200);
+
     } catch (error) {
+      // Tangani error secara konsisten
       return this._handleError(h, error);
     }
   }

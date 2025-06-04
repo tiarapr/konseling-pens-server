@@ -47,7 +47,6 @@ exports.up = (pgm) => {
     created_at: { type: 'TIMESTAMP', notNull: true, default: pgm.func('current_TIMESTAMP') },
     created_by: {
       type: 'UUID',
-      notNull: false,
       references: '"user"(id)',
       onUpdate: 'CASCADE',
     },

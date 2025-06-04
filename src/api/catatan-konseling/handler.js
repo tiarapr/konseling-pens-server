@@ -1,14 +1,17 @@
 const ClientError = require('../../exceptions/ClientError');
 
 class CatatanKonselingHandler {
-    constructor(service, validator) {
+    constructor(service, statusService, konselingService, validator) {
         this._service = service;
+        this._statusService = statusService;
+        this._konselingService = konselingService;
         this._validator = validator;
 
         this.createCatatanKonselingHandler = this.createCatatanKonselingHandler.bind(this);
         this.getAllCatatanKonselingHandler = this.getAllCatatanKonselingHandler.bind(this);
         this.getByKonselingIdHandler = this.getByKonselingIdHandler.bind(this);
         this.getOwnCatatanKonselingByKonselingIdHandler = this.getOwnCatatanKonselingByKonselingIdHandler.bind(this);
+        this.getOwnCatatanKonselingByIdHandler = this.getOwnCatatanKonselingByIdHandler.bind(this);
         this.getCatatanKonselingByIdHandler = this.getCatatanKonselingByIdHandler.bind(this);
         this.updateCatatanKonselingHandler = this.updateCatatanKonselingHandler.bind(this);
         this.deleteCatatanKonselingHandler = this.deleteCatatanKonselingHandler.bind(this);
@@ -21,7 +24,7 @@ class CatatanKonselingHandler {
             const {
                 konseling_id, deskripsi_masalah, usaha, kendala,
                 pencapaian, diagnosis, intervensi, tindak_lanjut,
-                konseling_lanjutan,
+                konseling_lanjutan
             } = request.payload;
 
             const createdBy = request.auth.credentials.jwt.user.id;
@@ -39,10 +42,18 @@ class CatatanKonselingHandler {
                 created_by: createdBy,
             });
 
+            const status = await this._statusService.getByKodeStatus('selesai');
+            const statusId = status.id;
+
+            const updatedKonseling = await this._konselingService.updateStatus(konseling_id, { status_id: statusId, updated_by: createdBy });
+
             return h.response({
                 status: 'success',
                 message: 'Catatan Konseling successfully created',
-                data: { catatan_konseling: result },
+                data: {
+                    catatan_konseling: result,
+                    konseling: updatedKonseling
+                },
             }).code(201);
 
         } catch (error) {
@@ -93,6 +104,32 @@ class CatatanKonselingHandler {
             return {
                 status: 'success',
                 data: { catatan_konseling: data },
+            };
+        } catch (error) {
+            return this._handleError(h, error);
+        }
+    }
+
+    async getOwnCatatanKonselingByIdHandler(request, h) {
+        try {
+            const { id } = request.params;
+            const userId = request.auth.credentials.jwt.user.id;
+
+            // First, retrieve the catatan to verify ownership
+            const catatan = await this._service.getById(id);
+
+            // Verify ownership
+            const isOwned = await this._service.isKonselingOwnedByUser(catatan.konseling_id, userId);
+            if (!isOwned) {
+                return h.response({
+                    status: 'fail',
+                    message: 'Anda tidak memiliki akses ke catatan konseling ini.',
+                }).code(403);
+            }
+
+            return {
+                status: 'success',
+                data: { catatan_konseling: catatan },
             };
         } catch (error) {
             return this._handleError(h, error);

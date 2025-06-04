@@ -14,8 +14,12 @@ class UserService {
     this._tokenExpirationHours = 24;
   }
 
-  async addUser({ email, phoneNumber, password, isVerified = false, roleId, createdBy }) {
-    await this.verifyNewEmail(email);
+  getDatabaseClient() {
+    return this._pool.connect();
+  }
+
+  async addUser(client, { email, phoneNumber, password, isVerified = false, roleId, createdBy }) {
+    await this.verifyNewEmail(client, email);
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -26,28 +30,23 @@ class UserService {
       values: [email, phoneNumber, hashedPassword, isVerified],
     };
 
-    const result = await this._pool.query(insertQuery);
+    const result = await client.query(insertQuery);
 
     if (!result.rows.length) {
       throw new InvariantError("Failed to add user.");
     }
 
     const userId = result.rows[0].id;
-
-    // Tentukan siapa yang membuat user ini
     const creatorId = createdBy || userId;
 
-    // Update created_by
-    await this._pool.query({
+    await client.query({
       text: `UPDATE "user" SET created_by = $1 WHERE id = $2`,
       values: [creatorId, userId],
     });
 
-    // Insert ke role_user
-    await this._pool.query({
-      text: `INSERT INTO role_user (
-           user_id, role_id, created_at, created_by
-         ) VALUES ($1, $2, NOW(), $3)`,
+    await client.query({
+      text: `INSERT INTO role_user (user_id, role_id, created_at, created_by)
+           VALUES ($1, $2, NOW(), $3)`,
       values: [userId, roleId, creatorId],
     });
 
@@ -128,7 +127,7 @@ class UserService {
   async getUserByEmail(email) {
     const query = {
       text: `
-      SELECT u.id, u.email, u.is_verified, u.created_at, r.name AS role_name
+      SELECT u.id, u.email, u.phone_number, u.is_verified, u.created_at, r.name AS role_name
       FROM "user" u
       JOIN role_user ru ON ru.user_id = u.id AND ru.deleted_at IS NULL
       JOIN role r ON r.id = ru.role_id
@@ -142,13 +141,13 @@ class UserService {
     return result.rows[0];
   }
 
-  async verifyNewEmail(email) {
+  async verifyNewEmail(client, email) {
     const query = {
       text: 'SELECT 1 FROM "user" WHERE email = $1 AND deleted_at IS NULL',
       values: [email],
     };
 
-    const result = await this._pool.query(query);
+    const result = await client.query(query);
 
     if (result.rows.length > 0) {
       throw new InvariantError('Email is already in use.');
@@ -220,7 +219,7 @@ class UserService {
     const isPasswordMatch = await bcrypt.compare(oldPassword, hashedPassword);
 
     if (!isPasswordMatch) {
-      throw new AuthenticationError('Old password is incorrect');
+      throw new ClientError('Old password is incorrect', 400);
     }
   }
 
@@ -312,33 +311,100 @@ class UserService {
     return id;
   }
 
-  async deleteUser(id, deleted_by) {
-    // Soft delete user
-    const userDeleteQuery = {
-      text: `UPDATE "user" 
-         SET deleted_at = NOW(), deleted_by = $1 
-         WHERE id = $2 AND deleted_at IS NULL`,
-      values: [deleted_by, id],
+  async updateUser(userId, { email, phoneNumber, password, updatedBy }, client) {
+    const currentUserQuery = {
+      text: `SELECT email FROM "user" WHERE id = $1 AND deleted_at IS NULL`,
+      values: [userId],
     };
+    const currentUserResult = await client.query(currentUserQuery);
 
-    const result = await this._pool.query(userDeleteQuery);
-
-    if (!result.rowCount) {
-      throw new NotFoundError("User not found or already deleted.");
+    if (!currentUserResult.rows.length) {
+      throw new NotFoundError("User tidak ditemukan.");
     }
 
-    // Delete associated role_user entries
-    await this._pool.query({
+    const currentUser = currentUserResult.rows[0];
+
+    const values = [];
+    const setClauses = [];
+    let idx = 1;
+
+    let isEmailUpdated = false;
+
+    if (email !== undefined && email !== null) {
+      values.push(email);
+      setClauses.push(`email = $${idx}`);
+      if (email !== currentUser.email) {
+        isEmailUpdated = true;
+        setClauses.push(`is_verified = false`);
+        setClauses.push(`verified_at = NULL`);
+      }
+      idx++;
+    }
+
+    if (phoneNumber !== undefined) {
+      values.push(phoneNumber);
+      setClauses.push(`phone_number = $${idx}`);
+      idx++;
+    }
+
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      values.push(hashedPassword);
+      setClauses.push(`password = $${idx}`);
+      idx++;
+    }
+
+    values.push(updatedBy);
+    setClauses.push(`updated_by = $${idx}`);
+    idx++;
+
+    values.push(userId);
+    const userIdIdx = idx;
+
+    const query = {
       text: `
-        UPDATE role_user 
-        SET deleted_at = NOW(), deleted_by = $1 
-        WHERE user_id = $2 AND deleted_at IS NULL
+        UPDATE "user"
+        SET ${setClauses.join(", ")},
+            updated_at = NOW()
+        WHERE id = $${userIdIdx}
+        RETURNING id, email, phone_number, is_verified
       `,
-      values: [deleted_by, id],
-    });
+      values,
+    };
+
+    const result = await client.query(query);
+    return {
+      ...result.rows[0],
+      emailUpdated: isEmailUpdated,
+    };
   }
 
-  async restoreUser(id, restored_by) {
+  async deleteUser(client, userId, deletedBy) {
+    // Soft delete user
+    const queryUser = {
+      text: `UPDATE "user"
+               SET deleted_at = NOW(), deleted_by = $1
+               WHERE id = $2 AND deleted_at IS NULL`,
+      values: [deletedBy, userId],
+    };
+
+    const result = await client.query(queryUser);
+    if (!result.rowCount) {
+      throw new NotFoundError("User tidak ditemukan atau sudah dihapus");
+    }
+
+    // Soft delete role_user
+    const queryRoleUser = {
+      text: `UPDATE role_user
+               SET deleted_at = NOW(), deleted_by = $1
+               WHERE user_id = $2 AND deleted_at IS NULL`,
+      values: [deletedBy, userId],
+    };
+
+    await client.query(queryRoleUser);
+  }
+
+  async restoreUser(client, id, restored_by) {
     const checkQuery = {
       text: `SELECT id FROM "user" WHERE id = $1 AND deleted_at IS NOT NULL`,
       values: [id],
@@ -359,7 +425,7 @@ class UserService {
       values: [id, restored_by],
     };
 
-    await this._pool.query(restoreUserQuery);
+    await client.query(restoreUserQuery);
 
     // Restore associated role_user entries
     const restoreRoleUserQuery = {
@@ -369,7 +435,7 @@ class UserService {
       values: [id, restored_by],
     };
 
-    await this._pool.query(restoreRoleUserQuery);
+    await client.query(restoreRoleUserQuery);
 
     return { message: "User and associated roles successfully restored." };
   }

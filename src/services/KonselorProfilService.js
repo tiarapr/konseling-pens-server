@@ -10,6 +10,10 @@ class KonselorProfilService {
     });
   }
 
+  getDatabaseClient() {
+    return this._pool.connect();
+  }
+
   // Get konselor profile by user ID
   async getByUserId(user_id) {
     const query = {
@@ -64,7 +68,7 @@ class KonselorProfilService {
   }
 
   // Membuat profil konselor baru
-  async create({ sipp, nama_lengkap, spesialisasi, user_id, created_by, photo_url = null }) {
+  async create(client, { sipp, nama_lengkap, spesialisasi, user_id, created_by, photo_url = null }) {
     const query = {
       text: `
         INSERT INTO konselor_profil (
@@ -77,7 +81,7 @@ class KonselorProfilService {
       values: [sipp, nama_lengkap, spesialisasi, user_id, created_by, photo_url],
     };
 
-    const result = await this._pool.query(query);
+    const result = await client.query(query);
 
     if (!result.rows.length) {
       throw new InvariantError("Failed to create konselor profile.");
@@ -112,8 +116,52 @@ class KonselorProfilService {
     return result.rows[0];
   }
 
+  async getAllKonselorWithAccount() {
+    const query = {
+      text: `
+      SELECT ap.*, u.email, u.phone_number, u.is_verified, r.name AS role_name
+      FROM konselor_profil ap
+      JOIN "user" u ON ap.user_id = u.id
+      JOIN role_user ru ON u.id = ru.user_id
+      JOIN role r ON ru.role_id = r.id
+      WHERE ap.deleted_at IS NULL AND u.deleted_at IS NULL
+      AND r.name = 'konselor'
+      ORDER BY ap.created_at DESC
+    `,
+    };
+
+    const result = await this._pool.query(query);
+    return result.rows;
+  }
+
+  async getKonselorAccountByUserId(userId) {
+    const query = {
+      text: `
+      SELECT ap.*, u.email, u.phone_number, u.is_verified, r.name AS role_name
+      FROM konselor_profil ap
+      JOIN "user" u ON ap.user_id = u.id
+      JOIN role_user ru ON u.id = ru.user_id
+      JOIN role r ON ru.role_id = r.id
+      WHERE ap.user_id = $1
+        AND ap.deleted_at IS NULL
+        AND u.deleted_at IS NULL
+        AND r.name = 'konselor'
+      LIMIT 1
+    `,
+      values: [userId],
+    };
+
+    const result = await this._pool.query(query);
+
+    if (result.rowCount === 0) {
+      throw new NotFoundError("Konselor account not found for the given user ID.");
+    }
+
+    return result.rows[0];
+  }
+
   // Update konselor profile by ID
-  async update(id, payload) {
+  async update(id, payload, client) {
     const { sipp, nama_lengkap, spesialisasi, photo_url, updated_by } = payload;
 
     const existing = await this.getById(id);
@@ -137,7 +185,7 @@ class KonselorProfilService {
       values: [updatedSipp, updatedNamaLengkap, updatedSpesialisasi, updatedPhotoUrl, updated_by, id],
     };
 
-    const result = await this._pool.query(query);
+    const result = await client.query(query);
 
     if (!result.rows.length) {
       throw new NotFoundError("Konselor profile not found or already deleted.");
@@ -147,7 +195,7 @@ class KonselorProfilService {
   }
 
   // Soft delete konselor profile
-  async softDelete(id, deleted_by) {
+  async softDelete(client, id, deleted_by) {
     const query = {
       text: `
         UPDATE konselor_profil
@@ -158,7 +206,7 @@ class KonselorProfilService {
       values: [deleted_by, id],
     };
 
-    const result = await this._pool.query(query);
+    const result = await client.query(query);
 
     if (!result.rows.length) {
       throw new NotFoundError("Konselor profile not found or already deleted.");
@@ -168,7 +216,7 @@ class KonselorProfilService {
   }
 
   // Restore konselor profile
-  async restore(id, restored_by) {
+  async restore(client, id, restored_by) {
     const query = {
       text: `
           UPDATE konselor_profil
@@ -182,7 +230,7 @@ class KonselorProfilService {
       values: [restored_by, id],
     };
 
-    const result = await this._pool.query(query);
+    const result = await client.query(query);
 
     if (result.rowCount === 0) {
       throw new NotFoundError("Konselor profile not found or has not been deleted.");

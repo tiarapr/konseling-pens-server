@@ -15,14 +15,11 @@ const routes = (handler) => [
     handler: handler.getCurrentUserHandler,
     options: {
       auth: 'basicAndJwtStrategy',
-      pre: [
-        { method: checkPermission(['view_current_user']) }
-      ]
     },
   },
   // Verify user email using token from email link
   {
-    method: "GET",
+    method: "POST",
     path: "/verify-email",
     handler: handler.verifyEmailHandler,
     options: {
