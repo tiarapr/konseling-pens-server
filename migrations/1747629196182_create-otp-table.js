@@ -11,8 +11,9 @@ exports.shorthands = undefined;
 exports.up = (pgm) => {
     pgm.createTable('otp', {
         id: {
-            type: 'serial',
-            primaryKey: true
+            type: "UUID",
+            primaryKey: true,
+            default: pgm.func("gen_random_uuid()"),
         },
         email: {
             type: 'varchar(255)',
