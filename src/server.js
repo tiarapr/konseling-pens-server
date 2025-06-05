@@ -197,7 +197,7 @@ const init = async () => {
     },
     {
       plugin: konseling,
-      options: { service: konselingService, statusService: statusService, konselorProfileService: konselorProfilService, validator: KonselingValidator },
+      options: { service: konselingService, statusService: statusService, userService: userService, mahasiswaService: mahasiswaService, whatsappService: whatsappService, konselorProfileService: konselorProfilService, validator: KonselingValidator },
     },
     {
       plugin: catatanKonseling,

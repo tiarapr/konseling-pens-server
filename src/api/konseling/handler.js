@@ -1,17 +1,14 @@
 const ClientError = require('../../exceptions/ClientError');
-const MahasiswaService = require('../../services/MahasiswaService');
-const UserService = require('../../services/UserService');
-const WhatsAppService = require('../../services/WhatsAppService');
 
 class KonselingHandler {
-    constructor(service, statusService, konselorProfileService, validator) {
+    constructor(service, statusService, userService, mahasiswaService, whatsappService, konselorProfileService, validator) {
         this._service = service;
         this._statusService = statusService;
         this._konselorProfileService = konselorProfileService;
         this._validator = validator;
-        this._mahasiswaService = new MahasiswaService();
-        this._userService = new UserService();
-        this._whatsappService = new WhatsAppService();
+        this._mahasiswaService = mahasiswaService;
+        this._userService = userService;
+        this._whatsappService = whatsappService;
 
         // Bind methods
         this.getAllKonselingHandler = this.getAllKonselingHandler.bind(this);
