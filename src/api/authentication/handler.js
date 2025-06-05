@@ -93,14 +93,14 @@ class AuthenticationHandler {
         .state("accessToken", accessToken.token, {
           isHttpOnly: true,
           isSecure: true,
-          sameSite: "Strict",
+          sameSite: "None",
           path: "/",
           ttl: 60 * 60 * 1000, // 15 mins
         })
         .state("refreshToken", refreshToken.token, {
           isHttpOnly: true,
           isSecure: true,
-          sameSite: "Strict",
+          sameSite: "None",
           path: "/",
           ttl: 7 * 24 * 60 * 60 * 1000, // 7 days
         });
