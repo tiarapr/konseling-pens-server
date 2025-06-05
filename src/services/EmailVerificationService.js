@@ -77,9 +77,11 @@ class EmailVerificationService {
     }
 
     async resendToken(userId) {
+        const client = await this._service.getDatabaseClient();
+
         await this.invalidateOldTokens(userId);
 
-        return this.generateToken(userId);
+        return this.generateToken(client, userId);
     }
 }
 

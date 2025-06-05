@@ -41,7 +41,7 @@ class UserHandler {
         roleId,
       });
 
-      const verificationToken = await this._emailVerificationService.generateToken(userId, client); // gunakan client jika perlu
+      const verificationToken = await this._emailVerificationService.generateToken(client, userId);
 
       await this._mailSender.sendVerificationEmail(email, verificationToken);
 
