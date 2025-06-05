@@ -30,19 +30,19 @@ exports.up = (pgm) => {
 
     // Function: Hitung total mahasiswa per konselor
     pgm.sql(`
-        CREATE OR REPLACE FUNCTION hitung_totsl_mahasiswa_janji_temu_per_konselor(
-        konselor_id UUID
-        )
-        RETURNS INTEGER AS $$
-        BEGIN
-        RETURN (
-            SELECT COUNT(DISTINCT nrp)
-            FROM janji_temu
-            WHERE preferensi_konselor_id = konselor_id
-            AND deleted_at IS NULL
-        );
-        END;
-        $$ LANGUAGE plpgsql;
+            CREATE OR REPLACE FUNCTION hitung_totsl_mahasiswa_janji_temu_per_konselor(
+            konselor_id UUID
+            )
+            RETURNS INTEGER AS $$
+            BEGIN
+            RETURN (
+                SELECT COUNT(DISTINCT nrp)
+                FROM janji_temu
+                WHERE preferensi_konselor_id = konselor_id
+                AND deleted_at IS NULL
+            );
+            END;
+            $$ LANGUAGE plpgsql;
     `);
 
     // Function: Hitung total mahasiswa per status
