@@ -38,6 +38,7 @@ exports.up = (pgm) => {
             type: "UUID",
             references: '"user"(id)',
             onUpdate: "CASCADE",
+            notNull: false,
         },
         updated_at: {
             type: "TIMESTAMP",

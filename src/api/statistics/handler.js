@@ -169,17 +169,18 @@ class StatisticsHandler {
     // Fungsi untuk menangani error
     _handleError(error, h) {
         if (error instanceof ClientError) {
+            const statusCode = Number.isInteger(error.statusCode) ? error.statusCode : 400;
             return h.response({
                 status: 'fail',
                 message: error.message,
-            }).code(error.statusCode);
+            }).code(statusCode);
         }
 
         if (error instanceof InvariantError) {
             return h.response({
                 status: 'fail',
                 message: error.message,
-            }).code(400); // Invariant error, bisa diubah jika perlu
+            }).code(400);
         }
 
         console.error(error);

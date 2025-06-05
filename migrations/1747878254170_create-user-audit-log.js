@@ -11,7 +11,11 @@ exports.shorthands = undefined;
 exports.up = (pgm) => {
     // 1. Create audit log table
     pgm.createTable('user_audit_log', {
-        id: { type: 'serial', primaryKey: true },
+         id: {
+            type: "UUID",
+            primaryKey: true,
+            default: pgm.func("gen_random_uuid()"),
+        },
         user_id: { type: 'uuid', notNull: true },
         action: { type: 'varchar(10)', notNull: true },
         old_data: { type: 'jsonb' },

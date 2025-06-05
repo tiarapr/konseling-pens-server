@@ -105,7 +105,7 @@ const init = async () => {
     host: config.HOST,
     routes: {
       cors: {
-        origin: ['*'],
+        origin: ['https://konseling-pens-client.vercel.app/'],
         credentials: true,
         headers: ['Authorization', 'Content-Type', 'Accept'],
       },
@@ -131,7 +131,7 @@ const init = async () => {
       return h.response()
         .header('Access-Control-Allow-Origin', '*')
         .header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE')
-        .header('Access-Control-Allow-Headers', 'Authorization, Authorization-Two, Content-Type, Accept')
+        .header('Access-Control-Allow-Headers', 'Authorization, Content-Type, Accept')
         .header('Access-Control-Max-Age', 86400)
         .code(204);
     }
