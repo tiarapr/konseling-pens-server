@@ -37,7 +37,7 @@ const routes = (handler) => [
     // MILIK KONSELOR
     {
         method: 'GET',
-        path: '/konseling/my',
+        path: '/konseling/konselor',
         handler: handler.getKonselingByKonselorIdHandler,
         options: {
             auth: 'basicAndJwtStrategy',
