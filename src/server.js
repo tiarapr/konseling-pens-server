@@ -105,7 +105,7 @@ const init = async () => {
     host: config.HOST,
     routes: {
       cors: {
-        origin: ['https://konseling-pens-client.vercel.app', 'https://konseling-pens-client-g6kn5zj4a-tiaraprs-projects.vercel.app'],
+        origin: ['*'],
         credentials: true,
         headers: ['Authorization', 'Content-Type', 'Accept'],
       },
