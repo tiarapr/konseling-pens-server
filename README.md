@@ -38,7 +38,8 @@ This repository contains the backend service for the **E-Konseling PENS** platfo
     ```plaintext
     DATABASE_URL=postgres://<username>:<password>@localhost:5432/<your-database>
     REDIS_URL=<redis-url>
-    Example REDIS_URL: redis://localhost:6379
+
+    // Example REDIS_URL: redis://localhost:6379
     
     # Server Configuration
     PORT=5000

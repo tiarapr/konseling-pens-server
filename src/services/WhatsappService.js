@@ -1,4 +1,5 @@
 const axios = require('axios');
+const WhatsappQueue = require('../queues/WhatsappQueue');
 
 class WhatsAppService {
   constructor() {
@@ -16,25 +17,24 @@ class WhatsAppService {
 
       if (parameters.length) {
         components.push({
-          type: "body",
+          type: 'body',
           parameters,
         });
       }
 
-      // Tambah komponen ekstra seperti button
       if (extraComponents.length) {
         components.push(...extraComponents);
       }
 
       const payload = {
-        messaging_product: "whatsapp",
+        messaging_product: 'whatsapp',
         to: phone,
-        type: "template",
+        type: 'template',
         template: {
           name: templateName,
           language: { code: languageCode },
-          components
-        }
+          components,
+        },
       };
 
       const response = await axios.post(
@@ -43,8 +43,8 @@ class WhatsAppService {
         {
           headers: {
             Authorization: `Bearer ${this.accessToken}`,
-            "Content-Type": "application/json"
-          }
+            'Content-Type': 'application/json',
+          },
         }
       );
 
@@ -56,41 +56,36 @@ class WhatsAppService {
     }
   }
 
+  async enqueueTemplateMessage(phone, templateName, languageCode, parameters = [], extraComponents = []) {
+    return WhatsappQueue.add('sendTemplateMessage', {
+      type: 'sendTemplateMessage',
+      data: { phone, templateName, languageCode, parameters, extraComponents },
+    });
+  }
+
   async sendOtpMessage(phone, otp) {
-    return this.sendTemplateMessage(
+    return this.enqueueTemplateMessage(
       phone,
-      "kode_otp_login",
-      "id",
-      [
-        { type: "text", text: otp }  // Body parameter
-      ],
-      [
-        {
-          type: "button",
-          sub_type: "url",
-          index: 0,
-          parameters: [
-            { type: "text", text: otp }
-          ]
-        }
-      ]
+      'kode_otp_login',
+      'id',
+      [{ type: 'text', text: otp }]
     );
   }
 
   async sendJanjiTemuNotification(data) {
     const { recipient, appointment } = data;
 
-    return this.sendTemplateMessage(
+    return this.enqueueTemplateMessage(
       recipient.phone,
-      "pengajuan_janji_temu_berhasil",
-      "id",
+      'pengajuan_janji_temu_berhasil',
+      'id',
       [
-        { type: "text", text: recipient.name },                 // {{1}} Nama mahasiswa
-        { type: "text", text: appointment.nomor_tiket },        // {{2}} Nomor tiket
-        { type: "text", text: appointment.tipe_konsultasi },    // {{3}} Tipe konsultasi
-        { type: "text", text: appointment.jadwal_utama },       // {{4}} Jadwal utama
-        { type: "text", text: appointment.jadwal_alternatif },  // {{5}} Jadwal alternatif
-        { type: "text", text: appointment.status }              // {{6}} Status (misal: Menunggu Konfirmasi)
+        { type: 'text', text: recipient.name },
+        { type: 'text', text: appointment.nomor_tiket },
+        { type: 'text', text: appointment.tipe_konsultasi },
+        { type: 'text', text: appointment.jadwal_utama },
+        { type: 'text', text: appointment.jadwal_alternatif },
+        { type: 'text', text: appointment.status },
       ]
     );
   }
@@ -98,17 +93,17 @@ class WhatsAppService {
   async sendAdminJanjiTemuNotification(data) {
     const { recipient, appointment, mahasiswa } = data;
 
-    return this.sendTemplateMessage(
+    return this.enqueueTemplateMessage(
       recipient.phone,
-      "permintaan_janji_temu_baru",
-      "id",
+      'permintaan_janji_temu_baru',
+      'id',
       [
-        { type: "text", text: appointment.nomor_tiket },         // {{1}}
-        { type: "text", text: mahasiswa.nama },                  // {{2}}
-        { type: "text", text: appointment.tipe_konsultasi },     // {{3}}
-        { type: "text", text: appointment.jadwal_utama },        // {{4}}
-        { type: "text", text: appointment.jadwal_alternatif },   // {{5}}
-        { type: "text", text: appointment.status },              // {{6}}
+        { type: 'text', text: appointment.nomor_tiket },
+        { type: 'text', text: mahasiswa.nama },
+        { type: 'text', text: appointment.tipe_konsultasi },
+        { type: 'text', text: appointment.jadwal_utama },
+        { type: 'text', text: appointment.jadwal_alternatif },
+        { type: 'text', text: appointment.status },
       ]
     );
   }
@@ -116,17 +111,17 @@ class WhatsAppService {
   async statusJanjiTemuUpdateNotification(data) {
     const { recipient, appointment } = data;
 
-    return this.sendTemplateMessage(
+    return this.enqueueTemplateMessage(
       recipient.phone,
-      "pembaruan_status_janji_temu", // nama template kamu di Meta
-      "id", // kode bahasa, sesuai template
+      'pembaruan_status_janji_temu',
+      'id',
       [
-        { type: "text", text: recipient.name || "-" },
-        { type: "text", text: appointment.nomorTiket || "-" },
-        { type: "text", text: appointment.tipeKonsultasi || "-" },
-        { type: "text", text: appointment.jadwalUtama || "-" },
-        { type: "text", text: appointment.jadwalAlternatif || "-" },
-        { type: "text", text: appointment.status || "-" }
+        { type: 'text', text: recipient.name || '-' },
+        { type: 'text', text: appointment.nomorTiket || '-' },
+        { type: 'text', text: appointment.tipeKonsultasi || '-' },
+        { type: 'text', text: appointment.jadwalUtama || '-' },
+        { type: 'text', text: appointment.jadwalAlternatif || '-' },
+        { type: 'text', text: appointment.status || '-' },
       ]
     );
   }
@@ -134,16 +129,16 @@ class WhatsAppService {
   async sendJadwalKonselingNotification(data) {
     const { recipient, konseling } = data;
 
-    return this.sendTemplateMessage(
+    return this.enqueueTemplateMessage(
       recipient.phone,
-      "jadwal_konseling",
-      "id",
+      'jadwal_konseling',
+      'id',
       [
-        { type: "text", text: recipient.name },       // {{1}} Nama mahasiswa
-        { type: "text", text: konseling.konselor },   // {{2}} Nama konselor
-        { type: "text", text: konseling.tanggal },    // {{3}} Tanggal
-        { type: "text", text: konseling.waktu },      // {{4}} Waktu
-        { type: "text", text: konseling.lokasi },     // {{5}} Lokasi
+        { type: 'text', text: recipient.name },
+        { type: 'text', text: konseling.konselor },
+        { type: 'text', text: konseling.tanggal },
+        { type: 'text', text: konseling.waktu },
+        { type: 'text', text: konseling.lokasi },
       ]
     );
   }
@@ -152,22 +147,21 @@ class WhatsAppService {
     const { recipient, konseling, hadir } = data;
 
     const templateName = hadir
-      ? "konfirmasi_kehadiran_hadir"
-      : "konfirmasi_kehadiran_tidak_hadir";
+      ? 'konfirmasi_kehadiran_hadir'
+      : 'konfirmasi_kehadiran_tidak_hadir';
 
-    return this.sendTemplateMessage(
+    return this.enqueueTemplateMessage(
       recipient.phone,
       templateName,
-      "id",
+      'id',
       [
-        { type: "text", text: recipient.name },       // {{1}}
-        { type: "text", text: konseling.tanggal },    // {{2}}
-        { type: "text", text: konseling.waktu },      // {{3}}
-        { type: "text", text: konseling.lokasi },     // {{4}}
+        { type: 'text', text: recipient.name },
+        { type: 'text', text: konseling.tanggal },
+        { type: 'text', text: konseling.waktu },
+        { type: 'text', text: konseling.lokasi },
       ]
     );
   }
-
 }
 
 module.exports = WhatsAppService;

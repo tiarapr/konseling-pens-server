@@ -1,7 +1,7 @@
 const { Pool } = require("pg");
 const InvariantError = require("../exceptions/InvariantError");
 const NotFoundError = require("../exceptions/NotFoundError");
-const ClientError = require('../exceptions/ClientError');  // Jika diperlukan untuk menangani error klien
+const ClientError = require('../exceptions/ClientError'); 
 
 class KemahasiswaanProfilService {
   constructor() {

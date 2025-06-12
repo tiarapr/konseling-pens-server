@@ -45,8 +45,10 @@ class MahasiswaService {
              ps.nama_program_studi, 
              sv.id AS status_verifikasi_id,
              sv.label AS status_verifikasi_label,
-             sv.warna AS status_verifikasi_warna
+             sv.warna AS status_verifikasi_warna,
+             u.phone_number
         FROM mahasiswa
+        LEFT JOIN "user" u ON mahasiswa.user_id = u.id
         LEFT JOIN program_studi ps ON mahasiswa.program_studi_id = ps.id
         LEFT JOIN status_verifikasi sv ON mahasiswa.status_verifikasi_id = sv.id
        WHERE mahasiswa.deleted_at IS NULL
@@ -59,6 +61,7 @@ class MahasiswaService {
       id: row.id,
       nrp: row.nrp,
       nama_lengkap: row.nama_lengkap,
+      phone_number: row.phone_number,
       program_studi: {
         id: row.program_studi_id,
         jenjang: row.jenjang,
@@ -202,8 +205,10 @@ class MahasiswaService {
            ps.nama_program_studi, 
            sv.id AS status_verifikasi_id,
            sv.label AS status_verifikasi_label,
-           sv.warna AS status_verifikasi_warna
+           sv.warna AS status_verifikasi_warna,
+           u.phone_number
     FROM mahasiswa
+    LEFT JOIN "user" u ON mahasiswa.user_id = u.id
     LEFT JOIN program_studi ps ON mahasiswa.program_studi_id = ps.id
     LEFT JOIN status_verifikasi sv ON mahasiswa.status_verifikasi_id = sv.id
     WHERE mahasiswa.deleted_at IS NULL
