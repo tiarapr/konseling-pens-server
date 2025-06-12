@@ -1,8 +1,8 @@
-const Redis = require('ioredis');
+const redisClient = require('../config/redis');
 
 class CacheService {
     constructor() {
-        this._client = new Redis(process.env.REDIS_URL);
+        this._client = redisClient;
     }
 
     async set(key, value, ttl = 3600) {

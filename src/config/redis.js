@@ -3,7 +3,7 @@ const IORedis = require('ioredis');
 const REDIS_URL = process.env.REDIS_URL;
 
 if (!REDIS_URL) {
-    throw new new Error('REDIS_URL not found in environment variables.');
+    throw new Error('REDIS_URL not found in environment variables.');
 }
 
 const redisClient = new IORedis(REDIS_URL, {
