@@ -1,11 +1,11 @@
 const nodemailer = require('nodemailer');
 const InvariantError = require('../exceptions/InvariantError');
-const verificationEmail = require('../notifications/email-verification/EmailVerificationTemplate');
-const otpEmailTemplate = require('../notifications/otp/OTPEmailTemplate'); 
-const resetPasswordEmail = require('../notifications/reset-password/ResetPasswordTemplate');
-const janjiTemuCreatedEmailTemplate = require('../notifications/janji-temu/JanjiTemuCreatedEmailTemplate');
-const janjiTemuUpdatedEmailTemplate = require('../notifications/janji-temu/JanjiTemuUpdatedEmailTemplate');
-const BaseTemplate = require('../notifications/BaseTemplate');
+const verificationEmail = require('../email-templates/email-verification/EmailVerificationTemplate');
+const otpEmailTemplate = require('../email-templates/otp/OTPEmailTemplate'); 
+const resetPasswordEmail = require('../email-templates/reset-password/ResetPasswordTemplate');
+const janjiTemuCreatedEmailTemplate = require('../email-templates/janji-temu/JanjiTemuCreatedEmailTemplate');
+const janjiTemuUpdatedEmailTemplate = require('../email-templates/janji-temu/JanjiTemuUpdatedEmailTemplate');
+const BaseTemplate = require('../email-templates/BaseTemplate');
 
 class MailService {
   constructor() {
