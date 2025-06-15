@@ -131,19 +131,6 @@ const init = async () => {
   server.auth.scheme('basicAndJwt', basicAndJwtAuth);
   server.auth.strategy('basicAndJwtStrategy', 'basicAndJwt');
 
-  server.route({
-    method: 'OPTIONS',
-    path: '/{any*}',
-    handler: (request, h) => {
-      return h.response()
-        .header('Access-Control-Allow-Origin', '*')
-        .header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE')
-        .header('Access-Control-Allow-Headers', 'Authorization, Content-Type, Accept')
-        .header('Access-Control-Max-Age', 86400)
-        .code(204);
-    }
-  });
-
   // Register Plugins
   await server.register([
     {
