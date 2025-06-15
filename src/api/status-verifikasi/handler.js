@@ -98,7 +98,7 @@ class StatusVerifikasiHandler {
         try {
             const { id } = request.params;
 
-            const result = await this._service.delete(id); // assuming hard delete as per service
+            const result = await this._service.delete(id); 
 
             return {
                 status: 'success',

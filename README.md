@@ -1,20 +1,23 @@
-# E-Konseling PENS Server
+# E-Konseling PENS - Backend Server
 
-This is the backend for the **E-Konseling PENS** platform. It is built using **Hapi.js** and provides API endpoints for managing users, roles, permissions, counseling sessions, and related resources. The server integrates with PostgreSQL for data storage and supports both **Basic Authentication** and **JWT Authentication**.
+This repository contains the backend service for the **E-Konseling PENS** platform. It is built using **Hapi.js** and provides API endpoints for managing users, roles, permissions, counseling sessions, and related resources. The server integrates with PostgreSQL for data storage and supports both **Basic Authentication** and **JWT Authentication**.
 
 ## Features
 - **Role Management**: Define and manage roles.
 - **User Management**: Handle user registration, login, and profile management.
-- **Permissions**: Manage permissions related to different actions.
-- **Counseling**: Create and manage counseling sessions, topics, and counseling notes.
+- **Permissions Management**: Define and assign permissions for various user actions.
+- **Counseling**: Create and manage counseling sessions, and counseling notes.
 - **Appointments**: Handle appointment creation and scheduling.
-- **Email Notifications**: Integrated email service to send notifications (e.g., Gmail SMTP).
+- **Email Notifications**: ISend email notifications via Gmail SMTP.
+- **WhatsApp Notifications**: Send WhatsApp messages using the WhatsApp Business API.
 
 ## Prerequisites
 
 - **Node.js** v14 or above
 - **PostgreSQL** (For database management)
-- **Nodemailer** (For email functionality)
+- **Gmail SMTP credentials** (For email functionality)
+- **WhatsApp Business API credentials** (For whatsapp notification)
+- **Redis** (For cache)
 
 ## Setup Instructions
 
@@ -34,6 +37,9 @@ This is the backend for the **E-Konseling PENS** platform. It is built using **H
     Make a copy of `.env.example` and name it `.env`. Configure the following settings:
     ```plaintext
     DATABASE_URL=postgres://<username>:<password>@localhost:5432/<your-database>
+    REDIS_URL=<redis-url>
+
+    // Example REDIS_URL: redis://localhost:6379
     
     # Server Configuration
     PORT=5000
@@ -42,7 +48,6 @@ This is the backend for the **E-Konseling PENS** platform. It is built using **H
     # Auth Header Key
     BASIC_AUTH_USERNAME=pensjoss
     BASIC_AUTH_PASSWORD=<hashed-password>
-    AUTH_HEADER_KEY=authorization-two
 
     # Token Configuration
     ACCESS_TOKEN_KEY=<your-access-token-key>
@@ -58,6 +63,9 @@ This is the backend for the **E-Konseling PENS** platform. It is built using **H
     MAIL_SENDER=<sender-email>
     APP_NAME=E-Konseling PENS
     BASE_URL=<your-base-url>
+
+    WA_PHONE_NUMBER_ID=<your-whatsapp-api-business-number-id>
+    WA_ACCESS_TOKEN=<your-whatsapp-api-business-access-token>
     ```
 
 4. **Database Setup**
@@ -83,10 +91,8 @@ This is the backend for the **E-Konseling PENS** platform. It is built using **H
 - **Password**: A hashed password.
 
 ### JWT Authentication
-- **Header Key**: `authorization-two`
-- **Access Token**: A token for user authorization, which can be generated through the login flow.
-
 You can register a new user or authenticate via the provided endpoints to receive a JWT token.
+After successfully logging in, the JWT token will be stored in the accessToken cookie.
 
 ## Endpoints
 

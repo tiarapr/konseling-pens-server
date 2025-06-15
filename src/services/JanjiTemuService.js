@@ -23,6 +23,7 @@ class JanjiTemuService {
           jt.id,
           jt.nomor_tiket,
           m.nama_lengkap AS nama_mahasiswa,
+          u.phone_number,
           jt.nrp,
           jt.preferensi_konselor_id,
           kp.nama_lengkap AS nama_konselor,
@@ -45,6 +46,7 @@ class JanjiTemuService {
           jt.deleted_at
         FROM janji_temu jt
         JOIN mahasiswa m ON jt.nrp = m.nrp
+        JOIN "user" u ON m.user_id = u.id
         LEFT JOIN konselor_profil kp ON jt.preferensi_konselor_id = kp.id
         WHERE jt.deleted_at IS NULL
         ORDER BY jt.tanggal_pengajuan DESC
