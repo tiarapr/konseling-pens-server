@@ -6,7 +6,7 @@ if (!REDIS_URL) {
     throw new Error('REDIS_URL not found in environment variables.');
 }
 
-const redisClient = new IORedis(REDIS_URL, {
+const redisClient = new IORedis(REDIS_URL + '?family=0', {
     maxRetriesPerRequest: null,
 });
 
