@@ -57,6 +57,7 @@ class KonselingService {
         jt.nrp,
         jt.tipe_konsultasi,
         m.nama_lengkap AS nama_mahasiswa,
+        u.phone_number,
         k.konselor_profil_id,
         kp.nama_lengkap AS nama_konselor,
         s.label AS status,
@@ -81,6 +82,7 @@ class KonselingService {
       FROM konseling k
       JOIN janji_temu jt ON k.janji_temu_id = jt.id
       JOIN mahasiswa m ON jt.nrp = m.nrp
+      JOIN "user" u ON m.user_id = u.id
       JOIN konselor_profil kp ON k.konselor_profil_id = kp.id
       JOIN status s ON k.status_id = s.id
       LEFT JOIN rating r ON k.id = r.konseling_id
@@ -96,6 +98,7 @@ class KonselingService {
       janji_temu_id: row.janji_temu_id,
       tipe_konsultasi: row.tipe_konsultasi,
       mahasiswa: row.nama_mahasiswa,
+      no_telp: row.phone_number,
       konselor: row.nama_konselor,
       tanggal_konseling: row.tanggal_konseling,
       jam_mulai: row.jam_mulai,
@@ -129,63 +132,67 @@ class KonselingService {
     const query = {
       text: `
       SELECT
-  k.id,
-  k.janji_temu_id,
-  jt.nomor_tiket,
-  jt.nrp,
-  jt.tipe_konsultasi,
-  jt.jadwal_utama_tanggal,
-  jt.jadwal_utama_jam_mulai,
-  jt.jadwal_utama_jam_selesai,
-  jt.jadwal_alternatif_tanggal,
-  jt.jadwal_alternatif_jam_mulai,
-  jt.jadwal_alternatif_jam_selesai,
-  jt.tanggal_pengajuan,
-  m.nama_lengkap AS nama_mahasiswa,
-  k.konselor_profil_id,
-  kp.nama_lengkap AS nama_konselor,
-  s.label AS status,
-  s.warna AS status_warna,
-  k.tanggal_konseling,
-  k.jam_mulai,
-  k.jam_selesai,
-  k.lokasi,
-  k.status_kehadiran,
-  k.tanggal_konfirmasi,
-  k.status_id,
-  k.created_at,
-  k.created_by,
-  k.updated_at,
-  k.updated_by,
-  k.deleted_at,
-  k.deleted_by,
-  r.id as rating_id,
-  r.rating as nilai_rating,
-  r.ulasan,
-  r.created_at as rating_created_at,
+        k.id,
+        k.janji_temu_id,
+        jt.nomor_tiket,
+        jt.nrp,
+        jt.tipe_konsultasi,
+        jt.jadwal_utama_tanggal,
+        jt.jadwal_utama_jam_mulai,
+        jt.jadwal_utama_jam_selesai,
+        jt.jadwal_alternatif_tanggal,
+        jt.jadwal_alternatif_jam_mulai,
+        jt.jadwal_alternatif_jam_selesai,
+        jt.tanggal_pengajuan,
+        m.nama_lengkap AS nama_mahasiswa,
+        mahasiswa_user.phone_number AS no_telp_mahasiswa,
+        k.konselor_profil_id,
+        kp.nama_lengkap AS nama_konselor,
+        konselor_user.phone_number AS no_telp_konselor,
+        s.label AS status,
+        s.warna AS status_warna,
+        k.tanggal_konseling,
+        k.jam_mulai,
+        k.jam_selesai,
+        k.lokasi,
+        k.status_kehadiran,
+        k.tanggal_konfirmasi,
+        k.status_id,
+        k.created_at,
+        k.created_by,
+        k.updated_at,
+        k.updated_by,
+        k.deleted_at,
+        k.deleted_by,
+        r.id as rating_id,
+        r.rating as nilai_rating,
+        r.ulasan,
+        r.created_at as rating_created_at,
 
-  -- Hitung pertemuan ke berapa berdasarkan sesi mahasiswa
-  (
-    SELECT COUNT(*)
-    FROM konseling k2
-    JOIN janji_temu jt2 ON k2.janji_temu_id = jt2.id
-    WHERE jt2.nrp = jt.nrp
-      AND k2.deleted_at IS NULL
-      AND (
-        k2.tanggal_konseling < k.tanggal_konseling
-        OR (k2.tanggal_konseling = k.tanggal_konseling AND k2.jam_mulai <= k.jam_mulai)
-      )
-  ) AS pertemuan_ke,
+        -- Hitung pertemuan ke berapa berdasarkan sesi mahasiswa
+        (
+          SELECT COUNT(*)
+          FROM konseling k2
+          JOIN janji_temu jt2 ON k2.janji_temu_id = jt2.id
+          WHERE jt2.nrp = jt.nrp
+            AND k2.deleted_at IS NULL
+            AND (
+              k2.tanggal_konseling < k.tanggal_konseling
+              OR (k2.tanggal_konseling = k.tanggal_konseling AND k2.jam_mulai <= k.jam_mulai)
+            )
+        ) AS pertemuan_ke,
 
-  EXTRACT(EPOCH FROM (k.jam_selesai - k.jam_mulai)) / 60 AS durasi_menit -- durasi dalam menit
+        EXTRACT(EPOCH FROM (k.jam_selesai - k.jam_mulai)) / 60 AS durasi_menit -- durasi dalam menit
 
-FROM konseling k
-JOIN janji_temu jt ON k.janji_temu_id = jt.id
-JOIN mahasiswa m ON jt.nrp = m.nrp
-JOIN konselor_profil kp ON k.konselor_profil_id = kp.id
-JOIN status s ON k.status_id = s.id
-LEFT JOIN rating r ON k.id = r.konseling_id
-WHERE k.id = $1 AND k.deleted_at IS NULL
+      FROM konseling k
+      JOIN janji_temu jt ON k.janji_temu_id = jt.id
+      JOIN mahasiswa m ON jt.nrp = m.nrp
+      JOIN "user" mahasiswa_user ON m.user_id = mahasiswa_user.id
+      JOIN konselor_profil kp ON k.konselor_profil_id = kp.id
+      JOIN "user" konselor_user ON kp.user_id = konselor_user.id 
+      JOIN status s ON k.status_id = s.id
+      LEFT JOIN rating r ON k.id = r.konseling_id
+      WHERE k.id = $1 AND k.deleted_at IS NULL
     `,
       values: [id],
     };
@@ -203,7 +210,6 @@ WHERE k.id = $1 AND k.deleted_at IS NULL
       janji_temu: {
         id: row.janji_temu_id,
         nomor_tiket: row.nomor_tiket,
-        nrp: row.nrp,
         tipe_konsultasi: row.tipe_konsultasi,
         jadwal_utama: {
           tanggal: row.jadwal_utama_tanggal,
@@ -219,8 +225,13 @@ WHERE k.id = $1 AND k.deleted_at IS NULL
       konselor: {
         id: row.konselor_profil_id,
         nama: row.nama_konselor,
+        no_telp: row.no_telp_konselor,
       },
-      mahasiswa: row.nama_mahasiswa,
+      mahasiswa: {
+        nrp: row.nrp,
+        nama: row.nama_mahasiswa,
+        no_telp:  row.no_telp_mahasiswa,
+      },
       tanggal_konseling: row.tanggal_konseling,
       jam_mulai: row.jam_mulai,
       jam_selesai: row.jam_selesai,
@@ -338,10 +349,12 @@ WHERE k.id = $1 AND k.deleted_at IS NULL
         jt.nrp,
         jt.tipe_konsultasi,
         m.nama_lengkap AS nama_mahasiswa,
+        u.phone_number,
         m.id AS id_mahasiswa,
         m.nrp AS nrp_mahasiswa,
         k.konselor_profil_id,
         kp.nama_lengkap AS nama_konselor,
+        konselor_user.phone_number AS no_telp_konselor,
         s.label AS status,
         s.warna AS status_warna,
         TO_CHAR(k.tanggal_konseling, 'YYYY-MM-DD') AS tanggal_konseling,
@@ -364,7 +377,9 @@ WHERE k.id = $1 AND k.deleted_at IS NULL
       FROM konseling k
       JOIN janji_temu jt ON k.janji_temu_id = jt.id
       JOIN mahasiswa m ON jt.nrp = m.nrp
+      JOIN "user" u ON m.user_id = u.id
       JOIN konselor_profil kp ON k.konselor_profil_id = kp.id
+      JOIN "user" konselor_user ON kp.user_id = konselor_user.id 
       JOIN status s ON k.status_id = s.id
       LEFT JOIN rating r ON k.id = r.konseling_id
       WHERE k.konselor_profil_id = $1 AND k.deleted_at IS NULL
@@ -381,7 +396,8 @@ WHERE k.id = $1 AND k.deleted_at IS NULL
       mahasiswa: {
         id: row.id_mahasiswa,
         nama: row.nama_mahasiswa,
-        nrp: row.nrp_mahasiswa
+        nrp: row.nrp_mahasiswa,
+        no_telp: row.phone_number,
       },
       konselor: row.nama_konselor,
       tanggal_konseling: row.tanggal_konseling,
@@ -473,7 +489,7 @@ WHERE k.id = $1 AND k.deleted_at IS NULL
       throw new NotFoundError("Gagal memperbarui konseling. ID tidak ditemukan");
     }
 
-    return result.rows[0].id;
+    return result.rows[0]; 
   }
 
   async updateStatus(id, { status_id, updated_by }) {
@@ -495,7 +511,7 @@ WHERE k.id = $1 AND k.deleted_at IS NULL
       throw new NotFoundError('Gagal memperbarui status konseling. ID tidak ditemukan');
     }
 
-    return result.rows[0].id;
+    return result.rows[0];
   }
 
   async konfirmasiKehadiran(id, { status_kehadiran, status_id, updated_by }) {
@@ -531,7 +547,7 @@ WHERE k.id = $1 AND k.deleted_at IS NULL
       throw new NotFoundError('Gagal mengkonfirmasi kehadiran. ID tidak ditemukan');
     }
 
-    return result.rows[0].id;
+    return result.rows[0];
   }
 
   async softDelete(id, deleted_by) {

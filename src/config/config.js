@@ -6,4 +6,7 @@ module.exports = {
   BASIC_AUTH_USERNAME: process.env.BASIC_AUTH_USERNAME,
   BASIC_AUTH_PASSWORD: process.env.BASIC_AUTH_PASSWORD,
   ACCESS_TOKEN_KEY: process.env.ACCESS_TOKEN_KEY,
+  ORIGINS: process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
+    : ['*'], // fallback default
 };

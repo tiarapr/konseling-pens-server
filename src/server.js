@@ -74,6 +74,10 @@ const KonselingValidator = require('./validator/konseling');
 const CatatanKonselingValidator = require('./validator/catatan-konseling');
 const RatingValidator = require('./validator/rating');
 
+// import notifier
+const JanjiTemuNotifier = require('./notifiers/janji-temu/JanjiTemuNotifier');
+const KonselingNotifier = require('./notifiers/konseling/KonselingNotifier');
+
 const init = async () => {
   const roleService = new RoleService();
   const userService = new UserService();
@@ -100,12 +104,15 @@ const init = async () => {
   const ratingService = new RatingService();
   const statisticsService = new StatisticsService();
 
+  const janjiTemuNotifier = new JanjiTemuNotifier();
+  const konselingNotifier = new KonselingNotifier();
+
   const server = Hapi.server({
     port: config.PORT,
     host: config.HOST,
     routes: {
       cors: {
-        origin: ['*'],
+        origin: config.ORIGINS,
         credentials: true,
         headers: ['Authorization', 'Content-Type', 'Accept'],
       },
@@ -193,15 +200,15 @@ const init = async () => {
     },
     {
       plugin: janjiTemu,
-      options: { service: janjiTemuService, mahasiswaService: mahasiswaService, userService: userService, mailService: mailService, whatsappService: whatsappService, validator: JanjiTemuValidator },
+      options: { service: janjiTemuService, mahasiswaService: mahasiswaService, userService: userService, notifier: janjiTemuNotifier, validator: JanjiTemuValidator },
     },
     {
       plugin: konseling,
-      options: { service: konselingService, statusService: statusService, userService: userService, mahasiswaService: mahasiswaService, whatsappService: whatsappService, konselorProfileService: konselorProfilService, validator: KonselingValidator },
+      options: { service: konselingService, statusService: statusService, userService: userService, mahasiswaService: mahasiswaService, konselorProfileService: konselorProfilService, notifier: konselingNotifier, validator: KonselingValidator },
     },
     {
       plugin: catatanKonseling,
-      options: { service: catatanKonselingService, statusService: statusService, konselingService: konselingService, validator: CatatanKonselingValidator },
+      options: { service: catatanKonselingService, statusService: statusService, konselingService: konselingService, notifier: konselingNotifier, validator: CatatanKonselingValidator },
     },
     {
       plugin: rating,

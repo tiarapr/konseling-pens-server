@@ -54,17 +54,6 @@ const routes = (handler) => [
     },
     {
         method: 'PUT',
-        path: '/konseling/{id}',
-        handler: handler.updateKonselingHandler,
-        options: {
-            auth: 'basicAndJwtStrategy',
-            pre: [
-                { method: checkPermission('update_konseling', 'manage_konselings') }
-            ]
-        },
-    },
-    {
-        method: 'PUT',
         path: '/konseling/{id}/reschedule',
         handler: handler.rescheduleKonselingHandler,
         options: {

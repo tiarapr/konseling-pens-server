@@ -13,24 +13,22 @@ const MailWorker = new Worker(
         try {
             switch (type) {
                 case 'sendVerificationEmail':
-                    await mailService._sendMail(data);
-                    break;
                 case 'sendOtpEmail':
-                    await mailService._sendMail(data);
-                    break;
                 case 'sendResetPasswordEmail':
-                    await mailService._sendMail(data);
-                    break;
                 case 'sendJanjiTemuNotification':
-                    await mailService._sendMail(data);
-                    break;
                 case 'sendJanjiTemuAdminNotification':
-                    await mailService._sendMail(data);
-                    break;
                 case 'sendJanjiTemuUpdateNotification':
-                    await mailService._sendMail(data);
-                    break;
+                case 'sendJadwalKonselingNotification':
                 case 'sendEmail':
+                case 'sendKonfirmasiKehadiranMahasiswa':
+                case 'sendKetidakhadiranMahasiswa':
+                case 'sendKonfirmasiKehadiranAdmin':
+                case 'sendKetidakhadiranAdmin':
+                case 'sendKonfirmasiKehadiranKonselor':
+                case 'sendKetidakhadiranKonselor':
+                case 'sendPembatalanMahasiswa':
+                case 'sendPembatalanKonselor':
+                case 'sendKonselingSelesai':
                     await mailService._sendMail(data);
                     break;
                 default:

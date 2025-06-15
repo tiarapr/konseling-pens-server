@@ -5,6 +5,11 @@ const otpEmailTemplate = require('../email-templates/otp/OTPEmailTemplate');
 const resetPasswordEmail = require('../email-templates/reset-password/ResetPasswordTemplate');
 const janjiTemuCreatedEmailTemplate = require('../email-templates/janji-temu/JanjiTemuCreatedEmailTemplate');
 const janjiTemuUpdatedEmailTemplate = require('../email-templates/janji-temu/JanjiTemuUpdatedEmailTemplate');
+const KonselingCreatedEmailTemplate = require('../email-templates/konseling/KonselingCreatedEmailTemplate');
+const KonselingRescheduleEmailTemplate = require('../email-templates/konseling/KonselingRescheduleEmailTemplate');
+const KonselingConfirmedEmailTemplate = require('../email-templates/konseling/KonselingConfirmedEmailTemplate');
+const KonselingCancelledEmailTemplate = require('../email-templates/konseling/KonselingCancelledEmailTemplate');
+const KonselingCompletedEmailTemplate = require('../email-templates/konseling/KonselingCompletedEmailTemplate');
 const BaseTemplate = require('../email-templates/BaseTemplate');
 const MailQueue = require('../queues/MailQueue');
 
@@ -123,6 +128,215 @@ class MailService {
     await MailQueue.add('sendJanjiTemuUpdateNotification', {
       to: email,
       subject: `[${this._appName}] Status Janji Temu Diperbarui`,
+      html,
+    });
+  }
+
+  async sendJadwalKonselingMahasiswaNotification(email, recipientName, konselingData) {
+    const html = KonselingCreatedEmailTemplate.untukMahasiswa(this._appName, recipientName.nama, {
+      konselor: konselingData.konselor,
+      tanggal: konselingData.tanggal,
+      waktu: konselingData.waktu,
+      lokasi: konselingData.lokasi,
+    });
+
+    await MailQueue.add('sendJadwalKonselingNotification', {
+      to: email,
+      subject: `[${this._appName}] Informasi Jadwal Konseling`,
+      html,
+    });
+  }
+
+  async sendJadwalKonselingKonselorNotification(email, recipientName, konselingData) {
+    const html = KonselingCreatedEmailTemplate.untukKonselor(this._appName, recipientName.nama, {
+      mahasiswa: konselingData.mahasiswa,
+      tanggal: konselingData.tanggal,
+      waktu: konselingData.waktu,
+      lokasi: konselingData.lokasi,
+      status: konselingData.statusKonseling,
+      status_kehadiran: konselingData.statusKehadiran,
+    });
+
+    await MailQueue.add('sendJadwalKonselingNotification', {
+      to: email,
+      subject: `[${this._appName}] Jadwal Konseling Baru`,
+      html,
+    });
+  }
+
+  async sendPembaruanJadwalKonselingMahasiswaNotification(email, recipientName, konselingData) {
+    const html = KonselingRescheduleEmailTemplate.untukMahasiswa(this._appName, recipientName.nama, {
+      konselor: konselingData.konselor,
+      tanggal: konselingData.tanggal,
+      waktu: konselingData.waktu,
+      lokasi: konselingData.lokasi,
+    });
+
+    await MailQueue.add('sendJadwalKonselingNotification', {
+      to: email,
+      subject: `[${this._appName}] Informasi Perubahan Jadwal Konseling`,
+      html,
+    });
+  }
+
+  async sendPembaruanJadwalKonselingKonselorNotification(email, recipientName, konselingData) {
+    const html = KonselingRescheduleEmailTemplate.untukKonselor(this._appName, recipientName.nama, {
+      mahasiswa: konselingData.mahasiswa,
+      tanggal: konselingData.tanggal,
+      waktu: konselingData.waktu,
+      lokasi: konselingData.lokasi,
+      status: konselingData.statusKonseling,
+      status_kehadiran: konselingData.statusKehadiran,
+    });
+
+    await MailQueue.add('sendJadwalKonselingNotification', {
+      to: email,
+      subject: `[${this._appName}] Informasi Perubahan Jadwal Konseling`,
+      html,
+    });
+  }
+
+  async sendKonfirmasiKehadiranMahasiswa(email, mahasiswa, konselingData) {
+    const html = KonselingConfirmedEmailTemplate.untukMahasiswaJikaHadir(this._appName, mahasiswa.nama, {
+      konselor: konselingData.konselor,
+      tanggal: konselingData.tanggal,
+      waktu: konselingData.waktu,
+      lokasi: konselingData.lokasi,
+      status_kehadiran: konselingData.statusKehadiran,
+    });
+
+    await MailQueue.add('sendKonfirmasiKehadiranMahasiswa', {
+      to: email,
+      subject: `[${this._appName}] Konfirmasi Kehadiran Konseling`,
+      html,
+    });
+  }
+
+  async sendKetidakhadiranMahasiswa(email, mahasiswa, konselingData) {
+    const html = KonselingConfirmedEmailTemplate.untukMahasiswaJikaTidakHadir(this._appName, mahasiswa.nama, {
+      konselor: konselingData.konselor,
+      tanggal: konselingData.tanggal,
+      waktu: konselingData.waktu,
+      lokasi: konselingData.lokasi,
+      status: konselingData.statusKonseling,
+      status_kehadiran: konselingData.statusKehadiran,
+    });
+
+    await MailQueue.add('sendKetidakhadiranMahasiswa', {
+      to: email,
+      subject: `[${this._appName}] Konfirmasi Ketidakhadiran Konseling`,
+      html,
+    });
+  }
+
+  async sendKonfirmasiKehadiranAdmin(email, konselingData) {
+    const html = KonselingConfirmedEmailTemplate.untukAdminJikaMahasiswaHadir(this._appName, null, {
+      mahasiswa: konselingData.mahasiswa,
+      konselor: konselingData.konselor,
+      tanggal: konselingData.tanggal,
+      waktu: konselingData.waktu,
+      lokasi: konselingData.lokasi,
+      status_kehadiran: konselingData.statusKehadiran,
+    });
+
+    await MailQueue.add('sendKonfirmasiKehadiranAdmin', {
+      to: email,
+      subject: `[${this._appName}] Konfirmasi Kehadiran Mahasiswa`,
+      html,
+    });
+  }
+
+  async sendKetidakhadiranAdmin(email, konselingData) {
+    const html = KonselingConfirmedEmailTemplate.untukAdminJikaMahasiswaTidakHadir(this._appName, null, {
+      mahasiswa: konselingData.mahasiswa,
+      konselor: konselingData.konselor,
+      tanggal: konselingData.tanggal,
+      waktu: konselingData.waktu,
+      lokasi: konselingData.lokasi,
+      status: konselingData.statusKonseling,
+      status_kehadiran: konselingData.statusKehadiran,
+    });
+
+    await MailQueue.add('sendKetidakhadiranAdmin', {
+      to: email,
+      subject: `[${this._appName}] Ketidakhadiran Mahasiswa`,
+      html,
+    });
+  }
+
+  async sendKonfirmasiKehadiranKonselor(email, konselor, konselingData) {
+    const html = KonselingConfirmedEmailTemplate.untukKonselorJikaMahasiswaHadir(this._appName, konselor.nama, {
+      mahasiswa: konselingData.mahasiswa,
+      tanggal: konselingData.tanggal,
+      waktu: konselingData.waktu,
+      lokasi: konselingData.lokasi,
+      status_kehadiran: konselingData.statusKehadiran,
+    });
+
+    await MailQueue.add('sendKonfirmasiKehadiranKonselor', {
+      to: email,
+      subject: `[${this._appName}] Mahasiswa Terkonfirmasi Hadir`,
+      html,
+    });
+  }
+
+  async sendKetidakhadiranKonselor(email, konselor, konselingData) {
+    const html = KonselingConfirmedEmailTemplate.untukKonselorJikaMahasiswaTidakHadir(this._appName, konselor.nama, {
+      mahasiswa: konselingData.mahasiswa,
+      tanggal: konselingData.tanggal,
+      waktu: konselingData.waktu,
+      lokasi: konselingData.lokasi,
+      status: konselingData.statusKonseling,
+      status_kehadiran: konselingData.statusKehadiran,
+    });
+
+    await MailQueue.add('sendKetidakhadiranKonselor', {
+      to: email,
+      subject: `[${this._appName}] Mahasiswa Tidak Hadir`,
+      html,
+    });
+  }
+
+  async sendPembatalanMahasiswa(email, mahasiswa, konselingData) {
+    const html = KonselingCancelledEmailTemplate.untukMahasiswa(this._appName, mahasiswa.nama, {
+      konselor: konselingData.konselor,
+      tanggal: konselingData.tanggal,
+      waktu: konselingData.waktu,
+      lokasi: konselingData.lokasi,
+      status: konselingData.statusKonseling,
+    });
+
+    await MailQueue.add('sendPembatalanMahasiswa', {
+      to: email,
+      subject: `[${this._appName}] Pembatalan Sesi Konseling`,
+      html,
+    });
+  }
+
+  async sendPembatalanKonselor(email, konselor, konselingData) {
+    const html = KonselingCancelledEmailTemplate.untukKonselor(this._appName, konselor.nama, {
+      mahasiswa: konselingData.mahasiswa,
+      tanggal: konselingData.tanggal,
+      waktu: konselingData.waktu,
+      lokasi: konselingData.lokasi,
+      status: konselingData.statusKonseling,
+    });
+
+    await MailQueue.add('sendPembatalanMahasiswa', {
+      to: email,
+      subject: `[${this._appName}] Pembatalan Sesi Konseling`,
+      html,
+    });
+  }
+
+  async sendKonselingSelesai(email, mahasiswa, konselingData) {
+    const html = KonselingCompletedEmailTemplate.untukMahasiswa(this._appName, mahasiswa.nama, {
+      konselor: konselingData.konselor
+    });
+
+    await MailQueue.add('sendKonselingSelesai', {
+      to: email,
+      subject: `[${this._appName}] Sesi Konseling Selesai`,
       html,
     });
   }

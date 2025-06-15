@@ -1,10 +1,11 @@
 const ClientError = require('../../exceptions/ClientError');
 
 class CatatanKonselingHandler {
-    constructor(service, statusService, konselingService, validator) {
+    constructor(service, statusService, konselingService, notifier, validator) {
         this._service = service;
         this._statusService = statusService;
         this._konselingService = konselingService;
+        this._notifier = notifier;
         this._validator = validator;
 
         this.createCatatanKonselingHandler = this.createCatatanKonselingHandler.bind(this);
@@ -46,6 +47,9 @@ class CatatanKonselingHandler {
             const statusId = status.id;
 
             const updatedKonseling = await this._konselingService.updateStatus(konseling_id, { status_id: statusId, updated_by: createdBy });
+            const konseling = await this._konselingService.getById(updatedKonseling.id);
+
+            await this._notifier.notifySelesaiKonseling(konseling);
 
             return h.response({
                 status: 'success',

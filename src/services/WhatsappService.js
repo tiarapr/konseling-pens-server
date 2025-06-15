@@ -126,7 +126,7 @@ class WhatsAppService {
     );
   }
 
-  async sendJadwalKonselingNotification(data) {
+  async sendJadwalKonselingMahasiswaNotification(data) {
     const { recipient, konseling } = data;
 
     return this.enqueueTemplateMessage(
@@ -143,22 +143,218 @@ class WhatsAppService {
     );
   }
 
-  async sendKonfirmasiKehadiranNotification(data) {
-    const { recipient, konseling, hadir } = data;
-
-    const templateName = hadir
-      ? 'konfirmasi_kehadiran_hadir'
-      : 'konfirmasi_kehadiran_tidak_hadir';
+  async sendJadwalKonselingKonselorNotification(data) {
+    const { recipient, konseling } = data;
 
     return this.enqueueTemplateMessage(
       recipient.phone,
-      templateName,
+      'jadwal_konseling_konselor',
       'id',
       [
         { type: 'text', text: recipient.name },
+        { type: 'text', text: konseling.mahasiswa },
         { type: 'text', text: konseling.tanggal },
         { type: 'text', text: konseling.waktu },
         { type: 'text', text: konseling.lokasi },
+        { type: 'text', text: konseling.statusKonseling || '-' },
+        { type: 'text', text: konseling.statusKehadiran || '-' },
+      ]
+    );
+  }
+
+  async sendPembaruanJadwalKonselingMahasiswaNotification(data) {
+    const { recipient, konseling } = data;
+
+    return this.enqueueTemplateMessage(
+      recipient.phone,
+      'pembaruan_jadwal_konseling',
+      'id',
+      [
+        { type: 'text', text: recipient.name },
+        { type: 'text', text: konseling.konselor },
+        { type: 'text', text: konseling.tanggal },
+        { type: 'text', text: konseling.waktu },
+        { type: 'text', text: konseling.lokasi },
+      ]
+    );
+  }
+
+  async sendPembaruanJadwalKonselingKonselorNotification(data) {
+    const { recipient, konseling } = data;
+
+    return this.enqueueTemplateMessage(
+      recipient.phone,
+      'pembaruan_jadwal_konseling_konselor',
+      'id',
+      [
+        { type: 'text', text: recipient.name },
+        { type: 'text', text: konseling.mahasiswa },
+        { type: 'text', text: konseling.tanggal },
+        { type: 'text', text: konseling.waktu },
+        { type: 'text', text: konseling.lokasi },
+        { type: 'text', text: konseling.statusKonseling || '-' },
+        { type: 'text', text: konseling.statusKehadiran || '-' },
+      ]
+    );
+  }
+
+  async sendKonfirmasiKehadiranMahasiswa(data) {
+    const { recipient, konseling } = data;
+
+    return this.enqueueTemplateMessage(
+      recipient.phone,
+      'konfirmasi_kehadiran_hadir_mahasiswa',
+      'id',
+      [
+        { type: 'text', text: recipient.name },
+        { type: 'text', text: konseling.konselor },
+        { type: 'text', text: konseling.tanggal },
+        { type: 'text', text: konseling.waktu },
+        { type: 'text', text: konseling.lokasi },
+        { type: 'text', text: konseling.statusKehadiran || '-' },
+      ]
+    );
+  }
+
+  async sendKonfirmasiKetidakehadiranMahasiswa(data) {
+    const { recipient, konseling } = data;
+
+    return this.enqueueTemplateMessage(
+      recipient.phone,
+      'konfirmasi_kehadiran_tidak_hadir_mahasiswa',
+      'id',
+      [
+        { type: 'text', text: recipient.name },
+        { type: 'text', text: konseling.konselor },
+        { type: 'text', text: konseling.tanggal },
+        { type: 'text', text: konseling.waktu },
+        { type: 'text', text: konseling.lokasi },
+        { type: 'text', text: konseling.statusKonseling || '-' },
+        { type: 'text', text: konseling.statusKehadiran || '-' },
+      ]
+    );
+  }
+
+  async sendKonfirmasiKehadiranKonselor(data) {
+    const { recipient, konseling } = data;
+
+    return this.enqueueTemplateMessage(
+      recipient.phone,
+      'konfirmasi_kehadiran_hadir_konselor',
+      'id',
+      [
+        { type: 'text', text: recipient.name },
+        { type: 'text', text: konseling.mahasiswa },
+        { type: 'text', text: konseling.tanggal },
+        { type: 'text', text: konseling.waktu },
+        { type: 'text', text: konseling.lokasi },
+        { type: 'text', text: konseling.statusKehadiran || '-' },
+      ]
+    );
+  }
+
+  async sendKonfirmasiKetidakehadiranKonselor(data) {
+    const { recipient, konseling } = data;
+
+    return this.enqueueTemplateMessage(
+      recipient.phone,
+      'konfirmasi_kehadiran_tidak_hadir_konselor',
+      'id',
+      [
+        { type: 'text', text: recipient.name },
+        { type: 'text', text: konseling.mahasiswa },
+        { type: 'text', text: konseling.tanggal },
+        { type: 'text', text: konseling.waktu },
+        { type: 'text', text: konseling.lokasi },
+        { type: 'text', text: konseling.statusKonseling || '-' },
+        { type: 'text', text: konseling.statusKehadiran || '-' },
+      ]
+    );
+  }
+
+  async sendKonfirmasiKehadiranAdmin(data) {
+    const { recipient, konseling } = data;
+
+    return this.enqueueTemplateMessage(
+      recipient.phone,
+      'konfirmasi_kehadiran_hadir_admin',
+      'id',
+      [
+        { type: 'text', text: konseling.mahasiswa },
+        { type: 'text', text: konseling.konselor },
+        { type: 'text', text: konseling.tanggal },
+        { type: 'text', text: konseling.waktu },
+        { type: 'text', text: konseling.lokasi },
+        { type: 'text', text: konseling.statusKehadiran || '-' },
+      ]
+    );
+  }
+
+  async sendKonfirmasiKetidakehadiranAdmin(data) {
+    const { recipient, konseling } = data;
+
+    return this.enqueueTemplateMessage(
+      recipient.phone,
+      'konfirmasi_kehadiran_tidak_hadir_admin',
+      'id',
+      [
+        { type: 'text', text: konseling.mahasiswa },
+        { type: 'text', text: konseling.konselor },
+        { type: 'text', text: konseling.tanggal },
+        { type: 'text', text: konseling.waktu },
+        { type: 'text', text: konseling.lokasi },
+        { type: 'text', text: konseling.statusKonseling || '-' },
+        { type: 'text', text: konseling.statusKehadiran || '-' },
+      ]
+    );
+  }
+
+  async sendPembatalanMahasiswa(data) {
+    const { recipient, konseling } = data;
+
+    return this.enqueueTemplateMessage(
+      recipient.phone,
+      'konseling_batal_mahasiswa',
+      'id',
+      [
+        { type: 'text', text: recipient.name },
+        { type: 'text', text: konseling.konselor },
+        { type: 'text', text: konseling.tanggal },
+        { type: 'text', text: konseling.waktu },
+        { type: 'text', text: konseling.lokasi },
+        { type: 'text', text: konseling.statusKonseling || '-' },
+      ]
+    );
+  }
+
+  async sendPembatalanKonselor(data) {
+    const { recipient, konseling } = data;
+
+    return this.enqueueTemplateMessage(
+      recipient.phone,
+      'konseling_batal_konselor',
+      'id',
+      [
+        { type: 'text', text: recipient.name },
+        { type: 'text', text: konseling.mahasiswa },
+        { type: 'text', text: konseling.tanggal },
+        { type: 'text', text: konseling.waktu },
+        { type: 'text', text: konseling.lokasi },
+        { type: 'text', text: konseling.statusKonseling || '-' },
+      ]
+    );
+  }
+
+  async sendKonselingSelesaiNotification(data) {
+    const { recipient, konseling } = data;
+
+    return this.enqueueTemplateMessage(
+      recipient.phone,
+      'konseling_selesai',
+      'id',
+      [
+        { type: 'text', text: recipient.name },
+        { type: 'text', text: konseling.konselor },
       ]
     );
   }
