@@ -40,9 +40,9 @@ const routes = (handler) => [
         handler: handler.getMyJanjiTemuHandler,
         options: {
             auth: 'basicAndJwtStrategy',
-            pre: [
-                { method: checkPermission('view_own_janji_temu') }
-            ]
+            // pre: [
+            //     { method: checkPermission('view_own_janji_temu') }
+            // ]
         },
     },
     {
