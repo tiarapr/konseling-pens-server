@@ -1,8 +1,8 @@
 const Joi = require('joi');
 
 // Regex patterns
-const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-const PHONE_REGEX = /^[1-9][0-9]{4,14}$/;
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.student\.pens\.ac\.id$/;
+const PHONE_REGEX = /^62[0-9]{8,13}$/;
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/;
 
 // Untuk payload create mahasiswa (dengan data user)
