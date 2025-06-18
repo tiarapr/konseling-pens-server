@@ -132,6 +132,9 @@ class KonselorProfilHandler {
         updated_by: updatedBy,
       }, client);
 
+      // Ambil data user yang sudah diperbarui
+      const updatedUser = await this._userService.getUserById(userId, client);
+
       await client.query('COMMIT');
 
       const responseMessage = userUpdateResult.emailUpdated
@@ -143,6 +146,7 @@ class KonselorProfilHandler {
         message: responseMessage,
         data: {
           konselorProfil: updatedProfile,
+          userAccount: updatedUser,
         },
       }).code(200);
     } catch (error) {
