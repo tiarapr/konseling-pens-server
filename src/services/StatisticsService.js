@@ -1,5 +1,4 @@
 const { Pool } = require('pg');
-const CacheService = require('./CacheService');
 const ClientError = require('../exceptions/ClientError');
 
 class StatisticsService {
@@ -8,18 +7,8 @@ class StatisticsService {
             connectionString: process.env.DATABASE_URL,
         });
 
-        this._cacheService = new CacheService();
         this.refreshInterval = 1000 * 60 * 60; // 1 hour
         this.startScheduledRefresh();
-    }
-
-    async _getOrSetCache(key, ttlSeconds, dbCallback) {
-        const cached = await this._cacheService.get(key);
-        if (cached) return cached;
-
-        const freshData = await dbCallback();
-        await this._cacheService.set(key, freshData, ttlSeconds);
-        return freshData;
     }
 
     startScheduledRefresh() {
@@ -43,9 +32,8 @@ class StatisticsService {
     }
 
     async getDashboardSummary() {
-        return this._getOrSetCache('dashboard_summary', 600, async () => {
-            try {
-                const query = `
+        try {
+            const query = `
                     WITH 
                     appointment_stats AS (
                         SELECT
@@ -127,18 +115,16 @@ class StatisticsService {
                         (a.confirmed_appointments * 100.0 / NULLIF(a.total_appointments, 0)) AS confirmation_rate
                     FROM appointment_stats a, student_stats s, counselor_stats c, session_stats ss, waiting_time wt;
                 `;
-                const { rows } = await this._pool.query(query);
-                return rows[0];
-            } catch (error) {
-                throw new ClientError('Error getting dashboard summary', error);
-            }
-        });
+            const { rows } = await this._pool.query(query);
+            return rows[0];
+        } catch (error) {
+            throw new ClientError('Error getting dashboard summary', error);
+        }
     }
 
     async getAppointmentTrends(days = 30) {
-        return this._getOrSetCache(`appointment_trends_${days}`, 1800, async () => {
-            try {
-                const query = `
+        try {
+            const query = `
                     SELECT
                         date_trunc('day', created_at)::date AS date,
                         COUNT(*) AS total,
@@ -151,36 +137,32 @@ class StatisticsService {
                     GROUP BY date
                     ORDER BY date;
                 `;
-                const { rows } = await this._pool.query(query, [days]);
-                return rows;
-            } catch (error) {
-                throw new ClientError('Error getting appointment trends', error);
-            }
-        });
+            const { rows } = await this._pool.query(query, [days]);
+            return rows;
+        } catch (error) {
+            throw new ClientError('Error getting appointment trends', error);
+        }
     }
 
     async getMonthlyAppointmentStats() {
-        return this._getOrSetCache('monthly_appointment_stats', 86400, async () => {
-            try {
-                const query = `
+        try {
+            const query = `
                     SELECT TO_CHAR(created_at, 'YYYY-MM') AS month, COUNT(*) AS total_appointments
                     FROM janji_temu
                     WHERE deleted_at IS NULL
                     GROUP BY TO_CHAR(created_at, 'YYYY-MM')
                     ORDER BY TO_CHAR(created_at, 'YYYY-MM') DESC;
                 `;
-                const { rows } = await this._pool.query(query);
-                return rows;
-            } catch (error) {
-                throw new ClientError('Error getting monthly appointment stats', error);
-            }
-        });
+            const { rows } = await this._pool.query(query);
+            return rows;
+        } catch (error) {
+            throw new ClientError('Error getting monthly appointment stats', error);
+        }
     }
 
     async getCounselorPerformance(limit = 5) {
-        return this._getOrSetCache(`counselor_performance_${limit}`, 3600, async () => {
-            try {
-                const query = `
+        try {
+            const query = `
                     SELECT 
                         konselor AS counselor_name,
                         total_permintaan AS total_appointments,
@@ -196,18 +178,16 @@ class StatisticsService {
                     ORDER BY average_rating DESC NULLS LAST, completion_rate DESC NULLS LAST
                     LIMIT $1;
                 `;
-                const { rows } = await this._pool.query(query, [limit]);
-                return rows;
-            } catch (error) {
-                throw new ClientError('Error getting counselor performance', error);
-            }
-        });
+            const { rows } = await this._pool.query(query, [limit]);
+            return rows;
+        } catch (error) {
+            throw new ClientError('Error getting counselor performance', error);
+        }
     }
 
     async getConsultationTypesDistribution() {
-        return this._getOrSetCache('consultation_types_distribution', 3600, async () => {
-            try {
-                const query = `
+        try {
+            const query = `
                     SELECT
                         tipe_konsultasi AS consultation_type,
                         COUNT(*) AS count,
@@ -217,18 +197,16 @@ class StatisticsService {
                     GROUP BY tipe_konsultasi
                     ORDER BY count DESC;
                 `;
-                const { rows } = await this._pool.query(query);
-                return rows;
-            } catch (error) {
-                throw new ClientError('Error getting consultation types distribution', error);
-            }
-        });
+            const { rows } = await this._pool.query(query);
+            return rows;
+        } catch (error) {
+            throw new ClientError('Error getting consultation types distribution', error);
+        }
     }
 
     async getDepartmentStats() {
-        return this._getOrSetCache('department_stats', 3600, async () => {
-            try {
-                const query = `
+        try {
+            const query = `
                     SELECT
                         d.id AS department_id,
                         d.name AS department,
@@ -246,18 +224,16 @@ class StatisticsService {
                     GROUP BY d.id, d.name
                     ORDER BY total_appointments DESC;
                 `;
-                const { rows } = await this._pool.query(query);
-                return rows;
-            } catch (error) {
-                throw new ClientError('Error getting department stats', error);
-            }
-        });
+            const { rows } = await this._pool.query(query);
+            return rows;
+        } catch (error) {
+            throw new ClientError('Error getting department stats', error);
+        }
     }
 
     async getTotalPengajuanPerProdiJenjang() {
-        return this._getOrSetCache('pengajuan_per_prodi_jenjang', 600, async () => {
-            try {
-                const query = `
+        try {
+            const query = `
                     SELECT 
                         jenjang,
                         nama_program_studi,
@@ -265,18 +241,16 @@ class StatisticsService {
                     FROM total_pengajuan_per_prodi_jenjang_view
                     ORDER BY jenjang, total_pengajuan DESC;
                 `;
-                const { rows } = await this._pool.query(query);
-                return rows;
-            } catch (error) {
-                throw new ClientError('Error fetching total pengajuan per prodi jenjang', error);
-            }
-        });
+            const { rows } = await this._pool.query(query);
+            return rows;
+        } catch (error) {
+            throw new ClientError('Error fetching total pengajuan per prodi jenjang', error);
+        }
     }
 
     async getDemografiMahasiswaPerProdi() {
-        return this._getOrSetCache('demografi_mahasiswa_per_prodi', 600, async () => {
-            try {
-                const query = `
+        try {
+            const query = `
                     SELECT 
                         departemen,
                         jenjang,
@@ -285,18 +259,16 @@ class StatisticsService {
                     FROM view_demografi_mahasiswa_per_prodi
                     ORDER BY departemen, nama_program_studi;
                 `;
-                const { rows } = await this._pool.query(query);
-                return rows;
-            } catch (error) {
-                throw new ClientError('Error fetching demografi mahasiswa per prodi', error);
-            }
-        });
+            const { rows } = await this._pool.query(query);
+            return rows;
+        } catch (error) {
+            throw new ClientError('Error fetching demografi mahasiswa per prodi', error);
+        }
     }
 
     async getDailySummary(days = 7) {
-        return this._getOrSetCache(`daily_summary_${days}`, 600, async () => {
-            try {
-                const query = `
+        try {
+            const query = `
                     SELECT
                         tanggal AS date,
                         total,
@@ -310,18 +282,16 @@ class StatisticsService {
                     ORDER BY date DESC
                     LIMIT $1;
                 `;
-                const { rows } = await this._pool.query(query, [days]);
-                return rows;
-            } catch (error) {
-                throw new ClientError('Error getting daily summary', error);
-            }
-        });
+            const { rows } = await this._pool.query(query, [days]);
+            return rows;
+        } catch (error) {
+            throw new ClientError('Error getting daily summary', error);
+        }
     }
 
     async getTotalKonselingPerBulanPerStatus() {
-        return this._getOrSetCache('total_konseling_per_bulan_per_status', 3600, async () => {
-            try {
-                const query = `
+        try {
+            const query = `
                 SELECT 
                     bulan,
                     kode_status,
@@ -331,25 +301,22 @@ class StatisticsService {
                 FROM view_total_konseling_per_bulan_per_status
                 ORDER BY bulan DESC, status_label;
             `;
-                const { rows } = await this._pool.query(query);
-                return rows;
-            } catch (error) {
-                throw new ClientError('Error fetching total konseling per bulan per status', error);
-            }
-        });
+            const { rows } = await this._pool.query(query);
+            return rows;
+        } catch (error) {
+            throw new ClientError('Error fetching total konseling per bulan per status', error);
+        }
     }
 
     async getAverageRating() {
-        return this._getOrSetCache('average_rating', 600, async () => {
-            try {
-                const query = 'SELECT * FROM view_rata_rata_rating';
-                const { rows } = await this._pool.query(query);
+        try {
+            const query = 'SELECT * FROM view_rata_rata_rating';
+            const { rows } = await this._pool.query(query);
 
-                return rows[0];
-            } catch (error) {
-                throw new ClientError('Error getting average rating', error);
-            }
-        });
+            return rows[0];
+        } catch (error) {
+            throw new ClientError('Error getting average rating', error);
+        }
     }
 }
 
