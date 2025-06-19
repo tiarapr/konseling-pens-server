@@ -75,9 +75,5 @@ exports.up = (pgm) => {
  * @param {import('node-pg-migrate').MigrationBuilder} pgm
  */
 exports.down = (pgm) => {
-  // Hapus tabel mahasiswa
   pgm.dropTable("mahasiswa");
-
-  // Hapus tabel status_verifikasi
-  pgm.dropTable('status_verifikasi');
 };
