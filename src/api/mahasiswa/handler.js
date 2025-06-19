@@ -214,7 +214,7 @@ class MahasiswaHandler {
 
             return h.response({
                 status: 'success',
-                message: 'Permintaan verifikasi ulang berhasil dikirim.',
+                message: 'Permintaan tinjau ulang berhasil dikirim.',
                 data: { mahasiswa: updatedMahasiswa },
             }).code(200);
         } catch (error) {

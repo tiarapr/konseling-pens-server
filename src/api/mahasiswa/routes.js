@@ -103,7 +103,7 @@ const routes = (handler) => [
     },
     {
         method: 'PUT',
-        path: '/mahasiswa/{id}/verifikasi-ulang',
+        path: '/mahasiswa/{id}/tinjau-ulang',
         handler: handler.requestReVerificationHandler,
         options: {
             auth: 'basicAndJwtStrategy'
