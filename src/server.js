@@ -207,19 +207,6 @@ const init = async () => {
     }
   ]);
 
-  // Static file handler
-  server.route({
-    method: 'GET',
-    path: '/storage/{param*}',
-    handler: {
-      directory: {
-        path: './storage',
-        redirectToSlash: true,
-        index: false,
-      }
-    }
-  });
-
   await server.start();
   console.log(`Server running at: ${server.info.uri}`);
 };
