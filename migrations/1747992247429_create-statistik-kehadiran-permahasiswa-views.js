@@ -8,7 +8,7 @@ exports.shorthands = undefined;
  */
 exports.up = (pgm) => {
     pgm.sql(`
-        CREATE OR REPLACE VIEW v_statistik_kehadiran_per_mahasiswa AS
+        CREATE OR REPLACE VIEW vw_statistik_kehadiran_per_mahasiswa AS
         SELECT
         m.id AS mahasiswa_id,
         m.nama_lengkap AS nama_mahasiswa,
@@ -32,6 +32,6 @@ exports.up = (pgm) => {
  */
 exports.down = (pgm) => {
     pgm.sql(`
-        DROP VIEW IF EXISTS v_statistik_kehadiran_per_mahasiswa;
+        DROP VIEW IF EXISTS vw_statistik_kehadiran_per_mahasiswa;
     `);
 };

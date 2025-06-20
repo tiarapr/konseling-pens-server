@@ -10,7 +10,7 @@ exports.shorthands = undefined;
  */
 exports.up = (pgm) => {
     pgm.sql(`
-        CREATE OR REPLACE VIEW view_total_mahasiswa AS
+        CREATE OR REPLACE VIEW vw_total_mahasiswa AS
         SELECT COUNT(*)::integer AS total_mahasiswa
         FROM mahasiswa
         WHERE is_active = TRUE AND deleted_at IS NULL;
@@ -23,5 +23,5 @@ exports.up = (pgm) => {
  * @returns {Promise<void> | void}
  */
 exports.down = (pgm) => {
-    pgm.sql('DROP VIEW IF EXISTS view_total_mahasiswa;');
+    pgm.sql('DROP VIEW IF EXISTS vw_total_mahasiswa;');
  };

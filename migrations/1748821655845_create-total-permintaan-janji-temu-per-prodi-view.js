@@ -10,7 +10,7 @@ exports.shorthands = undefined;
  */
 exports.up = (pgm) => {
     pgm.sql(`
-        CREATE OR REPLACE VIEW total_pengajuan_per_prodi_jenjang_view AS
+        CREATE OR REPLACE VIEW vw_total_pengajuan_per_prodi_jenjang AS
         SELECT 
             ps.jenjang,
             ps.nama_program_studi,
@@ -30,5 +30,5 @@ exports.up = (pgm) => {
  * @returns {Promise<void> | void}
  */
 exports.down = (pgm) => {
-    pgm.sql('DROP VIEW IF EXISTS total_pengajuan_per_prodi_jenjang_view');
+    pgm.sql('DROP VIEW IF EXISTS vw_total_pengajuan_per_prodi_jenjang');
 };

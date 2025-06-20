@@ -10,7 +10,7 @@ exports.shorthands = undefined;
  */
 exports.up = (pgm) => {
     pgm.sql(`
-        CREATE OR REPLACE FUNCTION validasi_pengajuan_duplikat()
+        CREATE OR REPLACE FUNCTION fn_validasi_pengajuan_duplikat()
         RETURNS TRIGGER AS $$
         BEGIN
         IF EXISTS (
@@ -32,7 +32,7 @@ exports.up = (pgm) => {
         CREATE TRIGGER trg_validasi_pengajuan_duplikat
         BEFORE INSERT ON janji_temu
         FOR EACH ROW
-        EXECUTE FUNCTION validasi_pengajuan_duplikat();
+        EXECUTE FUNCTION fn_validasi_pengajuan_duplikat();
     `);
 };
 
@@ -47,6 +47,6 @@ exports.down = (pgm) => {
     `);
 
      pgm.sql(`
-        DROP FUNCTION IF EXISTS validasi_pengajuan_duplikat;
+        DROP FUNCTION IF EXISTS fn_validasi_pengajuan_duplikat;
     `);
 };

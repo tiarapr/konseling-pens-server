@@ -8,7 +8,7 @@ exports.shorthands = undefined;
  */
 exports.up = (pgm) => {
     pgm.sql(`
-        CREATE OR REPLACE FUNCTION update_status_berlangsung_otomatis()
+        CREATE OR REPLACE FUNCTION fn_update_status_berlangsung_otomatis()
         RETURNS void AS $$
         BEGIN
         UPDATE konseling
@@ -32,6 +32,6 @@ exports.up = (pgm) => {
  */
 exports.down = (pgm) => {
     pgm.sql(`
-        DROP FUNCTION IF EXISTS update_status_berlangsung_otomatis;
+        DROP FUNCTION IF EXISTS fn_update_status_berlangsung_otomatis;
     `);
 };

@@ -10,25 +10,25 @@ exports.shorthands = undefined;
  */
 exports.up = (pgm) => {
     pgm.sql(`
-        CREATE OR REPLACE FUNCTION rekap_harian_trigger()
+        CREATE OR REPLACE FUNCTION fn_rekap_janji_temu_harian()
         RETURNS TRIGGER AS $$
         BEGIN
-        INSERT INTO log_rekap_janji_temu_harian(tanggal, total, dikonfirmasi, ditolak, menunggu_konfirmasi)
-        SELECT 
-            CURRENT_DATE,
-            COUNT(*) FILTER (WHERE deleted_at IS NULL),
-            COUNT(*) FILTER (WHERE status = 'dikonfirmasi' AND deleted_at IS NULL),
-            COUNT(*) FILTER (WHERE status = 'ditolak' AND deleted_at IS NULL),
-            COUNT(*) FILTER (WHERE status = 'menunggu_konfirmasi' AND deleted_at IS NULL)
-        FROM janji_temu
-        ON CONFLICT (tanggal)
-        DO UPDATE SET
-            total = EXCLUDED.total,
-            dikonfirmasi = EXCLUDED.dikonfirmasi,
-            ditolak = EXCLUDED.ditolak,
-            menunggu_konfirmasi = EXCLUDED.menunggu_konfirmasi;
+            INSERT INTO log_rekap_janji_temu_harian(tanggal, total, dikonfirmasi, ditolak, menunggu_konfirmasi)
+            SELECT
+                CURRENT_DATE,
+                COUNT(*) FILTER (WHERE deleted_at IS NULL),
+                COUNT(*) FILTER (WHERE status = 'dikonfirmasi' AND deleted_at IS NULL),
+                COUNT(*) FILTER (WHERE status = 'ditolak' AND deleted_at IS NULL),
+                COUNT(*) FILTER (WHERE status = 'menunggu_konfirmasi' AND deleted_at IS NULL)
+            FROM janji_temu
+            ON CONFLICT (tanggal)
+            DO UPDATE SET
+                total = EXCLUDED.total,
+                dikonfirmasi = EXCLUDED.dikonfirmasi,
+                ditolak = EXCLUDED.ditolak,
+                menunggu_konfirmasi = EXCLUDED.menunggu_konfirmasi;
 
-        RETURN NULL;
+            RETURN NEW;
         END;
         $$ LANGUAGE plpgsql;
     `);
@@ -41,6 +41,6 @@ exports.up = (pgm) => {
  */
 exports.down = (pgm) => {
     pgm.sql(`
-        DROP FUNCTION IF EXISTS rekap_harian_trigger;
+        DROP FUNCTION IF EXISTS fn_rekap_janji_temu_harian;
     `);
 };

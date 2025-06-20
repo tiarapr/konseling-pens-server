@@ -10,7 +10,7 @@ exports.shorthands = undefined;
  */
 exports.up = (pgm) => {
     pgm.sql(`
-        CREATE OR REPLACE FUNCTION rekap_janji_temu()
+        CREATE OR REPLACE FUNCTION fn_rekap_janji_temu()
             RETURNS TABLE (
             total BIGINT,
             total_dikonfirmasi BIGINT,
@@ -37,6 +37,6 @@ exports.up = (pgm) => {
  */
 exports.down = (pgm) => {
     pgm.sql(`
-        DROP FUNCTION IF EXISTS rekap_janji_temu;
+        DROP FUNCTION IF EXISTS fn_rekap_janji_temu;
     `);
 };

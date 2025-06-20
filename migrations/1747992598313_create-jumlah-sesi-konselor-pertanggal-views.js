@@ -8,7 +8,7 @@ exports.shorthands = undefined;
  */
 exports.up = (pgm) => {
     pgm.sql(`
-        CREATE OR REPLACE VIEW v_jumlah_sesi_per_tanggal_per_konselor AS
+        CREATE OR REPLACE VIEW vw_jumlah_sesi_per_tanggal_per_konselor AS
         SELECT
         kp.id AS konselor_id,
         kp.nama_lengkap AS nama_konselor,
@@ -27,6 +27,6 @@ exports.up = (pgm) => {
  */
 exports.down = (pgm) => {
     pgm.sql(`
-        DROP VIEW IF EXISTS v_jumlah_sesi_per_tanggal_per_konselor;
+        DROP VIEW IF EXISTS vw_jumlah_sesi_per_tanggal_per_konselor;
     `);
 };

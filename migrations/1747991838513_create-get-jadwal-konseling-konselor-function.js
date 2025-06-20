@@ -8,7 +8,7 @@ exports.shorthands = undefined;
  */
 exports.up = (pgm) => {
     pgm.sql(`
-        CREATE OR REPLACE FUNCTION get_jadwal_konseling_konselor(p_konselor_id UUID)
+        CREATE OR REPLACE FUNCTION fn_get_jadwal_konseling_konselor(p_konselor_id UUID)
         RETURNS TABLE (
         konseling_id UUID,
         tanggal_konseling DATE,
@@ -46,6 +46,6 @@ exports.up = (pgm) => {
  */
 exports.down = (pgm) => {
     pgm.sql(`
-        DROP FUNCTION IF EXISTS get_jadwal_konseling_konselor;
+        DROP FUNCTION IF EXISTS fn_get_jadwal_konseling_konselor;
     `);
 };

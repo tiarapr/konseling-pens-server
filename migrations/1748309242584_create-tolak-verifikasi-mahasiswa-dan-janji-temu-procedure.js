@@ -10,7 +10,7 @@ exports.shorthands = undefined;
  */
 exports.up = (pgm) => {
     pgm.sql(`
-        CREATE OR REPLACE PROCEDURE tolak_verifikasi_mahasiswa_dan_janji_temu(
+        CREATE OR REPLACE PROCEDURE prc_tolak_verifikasi_mahasiswa_dan_janji_temu(
             p_mahasiswa_id UUID,
             p_catatan_verifikasi TEXT,
             p_verified_at TIMESTAMP,
@@ -88,7 +88,7 @@ exports.up = (pgm) => {
  */
 exports.down = (pgm) => {
     pgm.sql(`
-        DROP PROCEDURE IF EXISTS tolak_verifikasi_mahasiswa_dan_janji_temu(
+        DROP PROCEDURE IF EXISTS prc_tolak_verifikasi_mahasiswa_dan_janji_temu(
             UUID, TEXT, TIMESTAMP, UUID, TEXT, UUID, UUID
         );
     `);
