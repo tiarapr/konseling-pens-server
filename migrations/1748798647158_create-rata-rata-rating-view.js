@@ -10,7 +10,7 @@ exports.shorthands = undefined;
  */
 exports.up = (pgm) => {
     pgm.sql(`
-        CREATE OR REPLACE VIEW view_rata_rata_rating AS
+        CREATE OR REPLACE VIEW vw_rata_rata_rating AS
         SELECT
         AVG(rating)::numeric(4,2) AS rata_rata_rating,
         COUNT(*) AS jumlah_rating
@@ -24,5 +24,5 @@ exports.up = (pgm) => {
  * @returns {Promise<void> | void}
  */
 exports.down = (pgm) => {
-    pgm.sql('DROP VIEW IF EXISTS view_rata_rata_rating;');
+    pgm.sql('DROP VIEW IF EXISTS vw_rata_rata_rating;');
 };

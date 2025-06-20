@@ -10,7 +10,7 @@ exports.shorthands = undefined;
  */
 exports.up = (pgm) => {
     pgm.sql(`
-        CREATE OR REPLACE FUNCTION rekap_janji_temu_per_konselor()
+        CREATE OR REPLACE FUNCTION fn_rekap_janji_temu_per_konselor()
         RETURNS TABLE (
         konselor_id UUID,
         nama_konselor TEXT,
@@ -38,6 +38,6 @@ exports.up = (pgm) => {
  */
 exports.down = (pgm) => {
     pgm.sql(`
-        DROP FUNCTION IF EXISTS rekap_janji_temu_per_konselor;
+        DROP FUNCTION IF EXISTS fn_rekap_janji_temu_per_konselor;
     `);
  };

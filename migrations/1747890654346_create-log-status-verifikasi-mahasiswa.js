@@ -57,50 +57,45 @@ exports.up = (pgm) => {
     pgm.createIndex("log_verifikasi_mahasiswa", "mahasiswa_id");
     pgm.createIndex("log_verifikasi_mahasiswa", "created_at");
 
-    // 3. Function untuk log perubahan status verifikasi
-    pgm.createFunction(
-        "log_mahasiswa_verification_change",
-        [],
-        {
-            language: "plpgsql",
-            returns: "TRIGGER",
-        },
-        `
-    BEGIN
-      IF NEW.status_verifikasi_id <> OLD.status_verifikasi_id THEN
-        INSERT INTO log_verifikasi_mahasiswa (
-          mahasiswa_id, 
-          status_verifikasi_id_old, 
-          status_verifikasi_id_new,
-          catatan_verifikasi,
-          verified_by
-        ) VALUES (
-          NEW.id,
-          OLD.status_verifikasi_id,
-          NEW.status_verifikasi_id,
-          NEW.catatan_verifikasi,
-          NEW.verified_by
-        );
-      END IF;
-      RETURN NEW;
-    END;
-    `
-    );
+    // 3. Function untuk log perubahan status verifikasi (as SQL)
+    pgm.sql(`
+        CREATE OR REPLACE FUNCTION fn_log_mahasiswa_verification_change()
+        RETURNS TRIGGER AS $$
+        BEGIN
+            IF NEW.status_verifikasi_id <> OLD.status_verifikasi_id THEN
+                INSERT INTO log_verifikasi_mahasiswa (
+                    mahasiswa_id, 
+                    status_verifikasi_id_old, 
+                    status_verifikasi_id_new,
+                    catatan_verifikasi,
+                    verified_by
+                ) VALUES (
+                    NEW.id,
+                    OLD.status_verifikasi_id,
+                    NEW.status_verifikasi_id,
+                    NEW.catatan_verifikasi,
+                    NEW.verified_by
+                );
+            END IF;
+            RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
+    `);
 
-    // 4. Trigger untuk mencatat log verifikasi
-    pgm.createTrigger("mahasiswa", "trigger_log_verifikasi_change", {
-        when: "AFTER",
-        operation: ["UPDATE"],
-        level: "ROW",
-        function: "log_mahasiswa_verification_change",
-    });
+    // 4. Trigger untuk mencatat log verifikasi (as SQL)
+    pgm.sql(`
+        CREATE TRIGGER trg_log_verifikasi_change
+        AFTER UPDATE ON mahasiswa
+        FOR EACH ROW
+        EXECUTE FUNCTION fn_log_mahasiswa_verification_change();
+    `);
 };
 
 /**
  * @param {import('node-pg-migrate').MigrationBuilder} pgm
  */
 exports.down = (pgm) => {
-    pgm.dropTrigger("mahasiswa", "trigger_log_verifikasi_change");
-    pgm.dropFunction("log_mahasiswa_verification_change");
+    pgm.sql(`DROP TRIGGER IF EXISTS trg_log_verifikasi_change ON mahasiswa`);
+    pgm.sql(`DROP FUNCTION IF EXISTS fn_log_mahasiswa_verification_change`);
     pgm.dropTable("log_verifikasi_mahasiswa");
 };

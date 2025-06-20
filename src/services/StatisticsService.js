@@ -238,7 +238,7 @@ class StatisticsService {
                         jenjang,
                         nama_program_studi,
                         total_pengajuan
-                    FROM total_pengajuan_per_prodi_jenjang_view
+                    FROM vw_total_pengajuan_per_prodi_jenjang
                     ORDER BY jenjang, total_pengajuan DESC;
                 `;
             const { rows } = await this._pool.query(query);
@@ -256,7 +256,7 @@ class StatisticsService {
                         jenjang,
                         nama_program_studi,
                         total_mahasiswa
-                    FROM view_demografi_mahasiswa_per_prodi
+                    FROM vw_demografi_mahasiswa_per_prodi
                     ORDER BY departemen, nama_program_studi;
                 `;
             const { rows } = await this._pool.query(query);
@@ -298,7 +298,7 @@ class StatisticsService {
                     status_label,
                     status_warna,
                     total
-                FROM view_total_konseling_per_bulan_per_status
+                FROM vw_total_konseling_per_bulan_per_status
                 ORDER BY bulan DESC, status_label;
             `;
             const { rows } = await this._pool.query(query);
@@ -310,7 +310,7 @@ class StatisticsService {
 
     async getAverageRating() {
         try {
-            const query = 'SELECT * FROM view_rata_rata_rating';
+            const query = 'SELECT * FROM vw_rata_rata_rating';
             const { rows } = await this._pool.query(query);
 
             return rows[0];

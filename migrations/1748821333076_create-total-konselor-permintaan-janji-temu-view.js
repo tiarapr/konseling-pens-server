@@ -10,7 +10,7 @@ exports.shorthands = undefined;
  */
 exports.up = (pgm) => {
   pgm.sql(`
-    CREATE OR REPLACE VIEW total_konselor_permintaan_janji_temu_view AS
+    CREATE OR REPLACE VIEW vw_total_permintaan_janji_temu_konselor AS
     SELECT
         kp.id AS konselor_id,
         kp.nama_lengkap AS konselor,
@@ -30,5 +30,5 @@ exports.up = (pgm) => {
  */
 exports.down = (pgm) => {
   // Drop view jika migrasi di-rollback
-  pgm.sql('DROP VIEW IF EXISTS total_konselor_permintaan_janji_temu_view');
+  pgm.sql('DROP VIEW IF EXISTS vw_total_permintaan_janji_temu_konselor');
 };

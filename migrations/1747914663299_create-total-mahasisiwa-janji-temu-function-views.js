@@ -11,7 +11,7 @@ exports.shorthands = undefined;
 exports.up = (pgm) => {
     // Function: Hitung total mahasiswa dalam rentang tanggal
     pgm.sql(`
-        CREATE OR REPLACE FUNCTION hitung_totsl_mahasiswa_janji_temu_dalam_rentang(
+        CREATE OR REPLACE FUNCTION fn_hitung_total_mahasiswa_janji_temu_dalam_rentang(
         tanggal_mulai DATE,
         tanggal_selesai DATE
         )
@@ -30,7 +30,7 @@ exports.up = (pgm) => {
 
     // Function: Hitung total mahasiswa per konselor
     pgm.sql(`
-            CREATE OR REPLACE FUNCTION hitung_totsl_mahasiswa_janji_temu_per_konselor(
+            CREATE OR REPLACE FUNCTION fn_hitung_total_mahasiswa_janji_temu_per_konselor(
             konselor_id UUID
             )
             RETURNS INTEGER AS $$
@@ -47,7 +47,7 @@ exports.up = (pgm) => {
 
     // Function: Hitung total mahasiswa per status
     pgm.sql(`
-        CREATE OR REPLACE FUNCTION hitung_totsl_mahasiswa_janji_temu_per_status(
+        CREATE OR REPLACE FUNCTION fn_hitung_total_mahasiswa_janji_temu_per_status(
         status_input status_janji_temu
         )
         RETURNS INTEGER AS $$
@@ -64,7 +64,7 @@ exports.up = (pgm) => {
 
     // Function: Hitung total mahasiswa per tipe konsultasi
     pgm.sql(`
-        CREATE OR REPLACE FUNCTION hitung_totsl_mahasiswa_janji_temu_per_tipe(
+        CREATE OR REPLACE FUNCTION fn_hitung_total_mahasiswa_janji_temu_per_tipe(
         tipe tipe_konsultasi
         )
         RETURNS INTEGER AS $$
@@ -81,7 +81,7 @@ exports.up = (pgm) => {
 
     // View: Ringkasan total mahasiswa per bulan
     pgm.sql(`
-        CREATE OR REPLACE VIEW view_total_mahasiswa_janji_temu_per_bulan AS
+        CREATE OR REPLACE VIEW vw_total_mahasiswa_janji_temu_per_bulan AS
         SELECT
         DATE_TRUNC('month', tanggal_pengajuan) AS bulan,
         COUNT(DISTINCT nrp) AS total_mahasiswa
@@ -93,7 +93,7 @@ exports.up = (pgm) => {
 
     // View: Ringkasan total mahasiswa per tahun
     pgm.sql(`
-        CREATE OR REPLACE VIEW view_total_mahasiswa_janji_temu_per_tahun AS
+        CREATE OR REPLACE VIEW vw_total_mahasiswa_janji_temu_per_tahun AS
         SELECT
         DATE_TRUNC('year', tanggal_pengajuan) AS tahun,
         COUNT(DISTINCT nrp) AS total_mahasiswa
@@ -105,7 +105,7 @@ exports.up = (pgm) => {
 
     // View: Ringkasan total mahasiswa per tipe konsultasi
     pgm.sql(`
-        CREATE OR REPLACE VIEW view_total_mahasiswa_janji_temu_per_tipe_konsultasi AS
+        CREATE OR REPLACE VIEW vw_total_mahasiswa_janji_temu_per_tipe_konsultasi AS
         SELECT
         tipe_konsultasi,
         COUNT(DISTINCT nrp) AS total_mahasiswa
@@ -116,7 +116,7 @@ exports.up = (pgm) => {
 
     // View: Ringkasan total mahasiswa per status
     pgm.sql(`
-        CREATE OR REPLACE VIEW view_total_mahasiswa_janji_temu_per_status AS
+        CREATE OR REPLACE VIEW vw_total_mahasiswa_janji_temu_per_status AS
         SELECT
         status,
         COUNT(DISTINCT nrp) AS total_mahasiswa
@@ -134,17 +134,17 @@ exports.up = (pgm) => {
 exports.down = (pgm) => {
     pgm.sql(`
         DROP FUNCTION IF EXISTS
-        hitung_totsl_mahasiswa_janji_temu_dalam_rentang,
-        hitung_totsl_mahasiswa_janji_temu_per_konselor,
-        hitung_totsl_mahasiswa_janji_temu_per_status,
-        hitung_totsl_mahasiswa_janji_temu_per_tipe;
+        fn_hitung_total_mahasiswa_janji_temu_dalam_rentang,
+        fn_hitung_total_mahasiswa_janji_temu_per_konselor,
+        fn_hitung_total_mahasiswa_janji_temu_per_status,
+        fn_hitung_total_mahasiswa_janji_temu_per_tipe;
     `);
 
     pgm.sql(`
         DROP VIEW IF EXISTS
-        view_total_mahasiswa_janji_temu_per_bulan,
-        view_total_mahasiswa_janji_temu_per_tahun,
-        view_total_mahasiswa_janji_temu_per_tipe_konsultasi,
-        view_total_mahasiswa_janji_temu_per_status;
+        vw_total_mahasiswa_janji_temu_per_bulan,
+        vw_total_mahasiswa_janji_temu_per_tahun,
+        vw_total_mahasiswa_janji_temu_per_tipe_konsultasi,
+        vw_total_mahasiswa_janji_temu_per_status;
     `);
 };
