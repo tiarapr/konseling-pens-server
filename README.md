@@ -36,10 +36,18 @@ This repository contains the backend service for the **E-Konseling PENS** platfo
 3. **Configure the `.env` File**
     Make a copy of `.env.example` and name it `.env`. Configure the following settings:
     ```plaintext
+    # Database
     DATABASE_URL=postgres://<username>:<password>@localhost:5432/<your-database>
-    REDIS_URL=<redis-url>
 
-    // Example REDIS_URL: redis://localhost:6379
+    # REDIS
+    REDIS_URL=
+
+    # SUPABASE 
+    SUPABASE_URL=
+    SUPABASE_SERVICE_ROLE_KEY=
+
+    # CORS
+    CORS_ORIGIN=
     
     # Server Configuration
     PORT=5000
