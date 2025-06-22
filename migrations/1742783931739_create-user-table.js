@@ -78,9 +78,11 @@ exports.up = (pgm) => {
         },
     });
 
-    pgm.createIndex('user', 'created_at');
-    pgm.createIndex('user', 'deleted_at');
-    pgm.createIndex("user", "is_verified");
+    pgm.createIndex('user', 'created_at', { name: 'idx_user_created_at' });
+    pgm.createIndex('user', 'verified_at', { name: 'idx_user_verified_at' });
+    pgm.createIndex("user", "is_verified", { name: 'idx_user_is_verified' });
+    pgm.createIndex('user', 'deleted_at', { name: 'idx_user_deleted_at' });
+    pgm.createIndex('user', 'restored_at', { name: 'idx_user_restored_at' });
 
     pgm.addConstraint('user', 'email_format_check', {
         check: "email ~ '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$'",
@@ -97,5 +99,11 @@ exports.up = (pgm) => {
  * @returns {Promise<void> | void}
  */
 exports.down = (pgm) => {
+    pgm.dropIndex('user', 'created_at', { name: 'idx_user_created_at' });
+    pgm.dropIndex('user', 'verified_at', { name: 'idx_user_verified_at' });
+    pgm.dropIndex('user', 'is_verified', { name: 'idx_user_is_verified' });
+    pgm.dropIndex('user', 'deleted_at', { name: 'idx_user_deleted_at' });
+    pgm.dropIndex('user', 'restored_at', { name: 'idx_user_restored_at' });
+
     pgm.dropTable('user');
 };
