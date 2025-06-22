@@ -17,7 +17,7 @@ exports.up = (pgm) => {
         COUNT(DISTINCT jt.id) AS total_permintaan
     FROM konselor_profil kp
     LEFT JOIN janji_temu jt ON kp.id = jt.preferensi_konselor_id
-    WHERE jt.deleted_at IS NULL  -- Pastikan hanya janji temu yang tidak dihapus
+    WHERE jt.deleted_at IS NULL 
     GROUP BY kp.id, kp.nama_lengkap
     ORDER BY total_permintaan DESC;
   `);

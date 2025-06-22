@@ -9,7 +9,6 @@ exports.shorthands = undefined;
  * @returns {Promise<void> | void}
  */
 exports.up = (pgm) => {
-    // Buat tabel status
     pgm.createTable('status', {
         id: {
             type: 'UUID',
@@ -24,6 +23,7 @@ exports.up = (pgm) => {
         label: {
             type: 'VARCHAR(100)',
             notNull: true,
+            unique: true,
         },
         warna: {
             type: 'VARCHAR(20)',
@@ -32,6 +32,7 @@ exports.up = (pgm) => {
         urutan: {
             type: 'INT',
             notNull: true,
+            unique: true,
         },
         is_active: {
             type: 'BOOLEAN',

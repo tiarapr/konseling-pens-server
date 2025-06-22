@@ -487,7 +487,7 @@ class MahasiswaService {
         LEFT JOIN catatan_konseling c ON k.id = c.konseling_id
         WHERE m.nrp = $1 
           AND m.deleted_at IS NULL
-          AND k.id IS NOT NULL  -- Pastikan data konseling valid
+          AND k.id IS NOT NULL
       )
       SELECT * FROM konseling_data
       ORDER BY tanggal_konseling DESC, jam_mulai ASC

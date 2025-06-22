@@ -39,7 +39,7 @@ exports.up = (pgm) => {
             type: "TEXT",
             notNull: false,
             default: null,
-        }, 
+        },
         created_at: {
             type: "TIMESTAMP",
             notNull: true,
@@ -79,9 +79,29 @@ exports.up = (pgm) => {
             onUpdate: 'CASCADE',
         },
     });
-    
+
     pgm.createIndex("kemahasiswaan_profil", "nama_lengkap", {
-        name: "idx_nama_lengkap_in_kemahasiswaan_profil",
+        name: "idx_kemahasiswaan_profil_nama_lengkap",
+    });
+
+    pgm.createIndex("kemahasiswaan_profil", "jabatan", {
+        name: "idx_kemahasiswaan_profil_jabatan",
+    });
+
+    pgm.createIndex("kemahasiswaan_profil", "created_at", {
+        name: "idx_kemahasiswaan_profil_created_at",
+    });
+
+    pgm.createIndex("kemahasiswaan_profil", "created_by", {
+        name: "idx_kemahasiswaan_profil_created_by",
+    });
+
+    pgm.createIndex("kemahasiswaan_profil", "updated_at", {
+        name: "idx_kemahasiswaan_profil_updated_at",
+    });
+    
+    pgm.createIndex("kemahasiswaan_profil", "deleted_at", {
+        name: "idx_kemahasiswaan_profil_deleted_at",
     });
 };
 
@@ -91,5 +111,29 @@ exports.up = (pgm) => {
  * @returns {Promise<void> | void}
  */
 exports.down = (pgm) => {
+    pgm.dropIndex("kemahasiswaan_profil", "nama_lengkap", {
+        name: "idx_kemahasiswaan_profil_nama_lengkap",
+    });
+
+    pgm.dropIndex("kemahasiswaan_profil", "jabatan", {
+        name: "idx_kemahasiswaan_profil_jabatan",
+    });
+
+    pgm.dropIndex("kemahasiswaan_profil", "created_at", {
+        name: "idx_kemahasiswaan_profil_created_at",
+    });
+
+    pgm.dropIndex("kemahasiswaan_profil", "created_by", {
+        name: "idx_kemahasiswaan_profil_created_by",
+    });
+
+    pgm.dropIndex("kemahasiswaan_profil", "updated_at", {
+        name: "idx_kemahasiswaan_profil_updated_at",
+    });
+
+    pgm.dropIndex("kemahasiswaan_profil", "deleted_at", {
+        name: "idx_kemahasiswaan_profil_deleted_at",
+    });
+
     pgm.dropTable('kemahasiswaan_profil');
 };

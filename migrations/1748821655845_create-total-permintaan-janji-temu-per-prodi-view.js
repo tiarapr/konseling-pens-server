@@ -18,7 +18,7 @@ exports.up = (pgm) => {
         FROM janji_temu jt
         JOIN mahasiswa m ON jt.nrp = m.nrp
         JOIN program_studi ps ON m.program_studi_id = ps.id
-        WHERE jt.deleted_at IS NULL -- Pastikan hanya pengajuan yang tidak dihapus
+        WHERE jt.deleted_at IS NULL
         GROUP BY ps.jenjang, ps.nama_program_studi
         ORDER BY ps.jenjang, total_pengajuan DESC;
     `);
