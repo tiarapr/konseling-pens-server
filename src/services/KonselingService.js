@@ -54,7 +54,7 @@ class KonselingService {
       SELECT
         k.id,
         k.janji_temu_id,
-        jt.nrp,
+        jt.nrp AS nrp_mahasiswa,
         jt.tipe_konsultasi,
         m.nama_lengkap AS nama_mahasiswa,
         u.phone_number,
@@ -97,7 +97,10 @@ class KonselingService {
       id: row.id,
       janji_temu_id: row.janji_temu_id,
       tipe_konsultasi: row.tipe_konsultasi,
-      mahasiswa: row.nama_mahasiswa,
+      mahasiswa: {
+        nrp: row.nrp_mahasiswa,
+        nama: row.nama_mahasiswa,
+      },
       no_telp: row.phone_number,
       konselor: row.nama_konselor,
       tanggal_konseling: row.tanggal_konseling,
