@@ -118,10 +118,10 @@ class UserHandler {
 
       return h.response({
         status: 'success',
-        message: 'Verification email has been resent. Please check your inbox.',
+        message: 'Email verifikasi telah dikirim ulang. Silakan periksa email Anda.',
       }).code(200);
     } catch (error) {
-      return this._handleError(error, h, 'Failed to resend verification email');
+      return this._handleError(error, h, 'Gagal mengirim ulang email verifikasi');
     }
   }
 
