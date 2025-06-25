@@ -20,6 +20,7 @@ class UserService {
 
   async addUser(client, { email, phoneNumber, password, isVerified = false, roleId, createdBy }) {
     await this.verifyNewEmail(client, email);
+    await this.verifyUserPhoneNumber(phoneNumber);
 
     const hashedPassword = await bcrypt.hash(password, 10);
 

@@ -18,8 +18,23 @@ class MahasiswaService {
     return this._pool.connect();
   }
 
+  async verifyNRP(nrp) {
+    const query = {
+      text: 'SELECT nrp FROM mahasiswa WHERE nrp = $1',
+      values: [nrp],
+    };
+
+    const result = await this._pool.query(query);
+
+    if (result.rows.length > 0) {
+      throw new InvariantError(`Mahasiswa dengan NRP ${nrp} sudah terdaftar di sistem`);
+    }
+  }
+
   async create(client, payload) {
     const { nrp, nama_lengkap, program_studi_id, tanggal_lahir, jenis_kelamin, ktm_url, user_id, status_verifikasi_id } = payload;
+
+    await this.verifyNRP(nrp);
 
     const query = {
       text: `INSERT INTO mahasiswa (
