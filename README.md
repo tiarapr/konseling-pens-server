@@ -1,4 +1,4 @@
-# E-Konseling PENS - Backend Server
+# 🎓 E-Konseling PENS - Backend Server
 
 This repository contains the backend service for the **E-Konseling PENS** platform. It is built using **Hapi.js** and provides API endpoints for managing users, roles, permissions, counseling sessions, and related resources. The server integrates with PostgreSQL for data storage and supports both **Basic Authentication** and **JWT Authentication**.
 
