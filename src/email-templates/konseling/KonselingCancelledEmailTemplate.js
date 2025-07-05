@@ -15,8 +15,6 @@ const untukMahasiswa = (appName, namaMahasiswa, data) => {
     </div>
     
     <p>Bahwa sesi konseling ini telah dibatalkan. Silakan kunjungi dashboard sistem Anda untuk informasi lebih lanjut.</p>
-    <p>Terima kasih,</p>
-    <p>Tim ${appName}</p>
   `;
 
     return baseTemplate(content, appName, {
@@ -39,8 +37,6 @@ const untukKonselor = (appName, namaKonselor, data) => {
     </div>
 
     <p>Bahwa sesi konseling ini telah dibatalkan. Silakan kunjungi dashboard sistem Anda untuk informasi lebih lanjut.</p>
-    <p>Terima kasih atas dedikasi Anda,</p>
-    <p>Tim ${appName}</p>
   `;
 
     return baseTemplate(content, appName, {
