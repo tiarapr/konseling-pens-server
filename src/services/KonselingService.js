@@ -39,13 +39,21 @@ class KonselingService {
       ],
     };
 
-    const result = await this._pool.query(query);
+    try {
+      const result = await this._pool.query(query);
 
-    if (!result.rows.length) {
-      throw new InvariantError("Gagal menambahkan konseling");
+      if (!result.rows.length) {
+        throw new InvariantError("Gagal menambahkan konseling");
+      }
+
+      return result.rows[0];
+    } catch (error) {
+      if (error.code === 'P0001') {
+        throw new InvariantError(error.message);
+      }
+
+      throw error;
     }
-
-    return result.rows[0];
   }
 
   async getAll() {
@@ -54,7 +62,7 @@ class KonselingService {
       SELECT
         k.id,
         k.janji_temu_id,
-        jt.nrp,
+        jt.nrp AS nrp_mahasiswa,
         jt.tipe_konsultasi,
         m.nama_lengkap AS nama_mahasiswa,
         u.phone_number,
@@ -97,7 +105,10 @@ class KonselingService {
       id: row.id,
       janji_temu_id: row.janji_temu_id,
       tipe_konsultasi: row.tipe_konsultasi,
-      mahasiswa: row.nama_mahasiswa,
+      mahasiswa: {
+        nrp: row.nrp_mahasiswa,
+        nama: row.nama_mahasiswa,
+      },
       no_telp: row.phone_number,
       konselor: row.nama_konselor,
       tanggal_konseling: row.tanggal_konseling,
@@ -230,7 +241,7 @@ class KonselingService {
       mahasiswa: {
         nrp: row.nrp,
         nama: row.nama_mahasiswa,
-        no_telp:  row.no_telp_mahasiswa,
+        no_telp: row.no_telp_mahasiswa,
       },
       tanggal_konseling: row.tanggal_konseling,
       jam_mulai: row.jam_mulai,
@@ -483,13 +494,21 @@ class KonselingService {
       ],
     };
 
-    const result = await this._pool.query(query);
+    try {
+      const result = await this._pool.query(query);
 
-    if (!result.rows.length) {
-      throw new NotFoundError("Gagal memperbarui konseling. ID tidak ditemukan");
+      if (!result.rows.length) {
+        throw new NotFoundError("Gagal memperbarui konseling. ID tidak ditemukan");
+      }
+
+      return result.rows[0];
+    } catch (error) {
+      if (error.code === 'P0001') {
+        throw new InvariantError(error.message);
+      }
+
+      throw error;
     }
-
-    return result.rows[0]; 
   }
 
   async updateStatus(id, { status_id, updated_by }) {

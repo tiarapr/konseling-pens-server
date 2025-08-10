@@ -1,4 +1,4 @@
-# E-Konseling PENS - Backend Server
+# 🎓 E-Konseling PENS - Backend Server
 
 This repository contains the backend service for the **E-Konseling PENS** platform. It is built using **Hapi.js** and provides API endpoints for managing users, roles, permissions, counseling sessions, and related resources. The server integrates with PostgreSQL for data storage and supports both **Basic Authentication** and **JWT Authentication**.
 
@@ -36,10 +36,18 @@ This repository contains the backend service for the **E-Konseling PENS** platfo
 3. **Configure the `.env` File**
     Make a copy of `.env.example` and name it `.env`. Configure the following settings:
     ```plaintext
+    # Database
     DATABASE_URL=postgres://<username>:<password>@localhost:5432/<your-database>
-    REDIS_URL=<redis-url>
 
-    // Example REDIS_URL: redis://localhost:6379
+    # REDIS
+    REDIS_URL=
+
+    # SUPABASE 
+    SUPABASE_URL=
+    SUPABASE_SERVICE_ROLE_KEY=
+
+    # CORS
+    CORS_ORIGIN=
     
     # Server Configuration
     PORT=5000

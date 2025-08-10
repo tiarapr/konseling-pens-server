@@ -272,14 +272,6 @@ class MahasiswaHandler {
                 throw new NotFoundError('Mahasiswa tidak ditemukan');
             }
 
-            // Pastikan requester adalah master
-            const requesterRole = request.auth.credentials.jwt.user.role_name;
-            const isAdmin = requesterRole === 'admin';
-
-            if (!isAdmin) {
-                throw Boom.forbidden('Tidak diizinkan menghapus data ini');
-            }
-
             const userId = mahasiswa.user_id;
 
             // Mulai transaksi

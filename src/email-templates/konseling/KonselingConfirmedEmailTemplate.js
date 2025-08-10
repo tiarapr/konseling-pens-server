@@ -42,8 +42,6 @@ const untukMahasiswaJikaHadir = (appName, namaMahasiswa, data) => {
     <p><strong>Catatan Penting:<strong></p>
     <p>Untuk sesi offline: Harap hadir sesuai jadwal dan lokasi, serta membawa Kartu Tanda Mahasiswa (KTM).</p>
     <p>Untuk sesi online: Sesi akan berlangsung via chat WhatsApp. Konselor akan menghubungi Anda melalui nomor yang terdaftar di sistem.</p>
-    <p>Terima kasih,</p>
-    <p>Tim ${appName}</p>
   `;
 
     return baseTemplate(content, appName, {
@@ -69,8 +67,6 @@ const untukAdminJikaMahasiswaTidakHadir = (appName, namaKonselor, data) => {
 
     <p>Bahwa sesi konseling ini telah dibatalkan secara otomatis karena konfirmasi ketidakhadiran dari pihak mahasiswa.</p>
     <p>Silakan kunjungi dashboard sistem Anda untuk informasi lebih lanjut.</p>
-    <p>Terima kasih atas dedikasi Anda,</p>
-    <p>Tim ${appName}</p>
   `;
 
     return baseTemplate(content, appName, {
@@ -94,8 +90,6 @@ const untukAdminJikaMahasiswaHadir = (appName, namaKonselor, data) => {
     </div>
 
     <p>Silakan kunjungi dashboard sistem Anda untuk informasi lebih lanjut.</p>
-    <p>Terima kasih atas dedikasi Anda,</p>
-    <p>Tim ${appName}</p>
   `;
 
     return baseTemplate(content, appName, {
@@ -120,8 +114,6 @@ const untukKonselorJikaMahasiswaTidakHadir = (appName, namaKonselor, data) => {
 
     <p>Bahwa sesi konseling ini telah dibatalkan secara otomatis karena konfirmasi ketidakhadiran dari pihak mahasiswa.</p>
     <p>Silakan kunjungi dashboard sistem Anda untuk informasi lebih lanjut.</p>
-    <p>Terima kasih atas dedikasi Anda,</p>
-    <p>Tim ${appName}</p>
   `;
 
     return baseTemplate(content, appName, {
@@ -144,8 +136,6 @@ const untukKonselorJikaMahasiswaHadir = (appName, namaKonselor, data) => {
     </div>
 
     <p>Mohon siapkan diri untuk sesi ini. Silakan kunjungi dashboard sistem Anda untuk informasi lebih lanjut.</p>
-    <p>Terima kasih atas dedikasi Anda,</p>
-    <p>Tim ${appName}</p>
   `;
 
     return baseTemplate(content, appName, {

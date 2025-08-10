@@ -7,7 +7,6 @@ exports.shorthands = undefined;
  * @param {import('node-pg-migrate').MigrationBuilder} pgm
  */
 exports.up = (pgm) => {
-    // 1. Table log_verifikasi_mahasiswa
     pgm.createTable("log_verifikasi_mahasiswa", {
         id: {
             type: "UUID",
@@ -53,19 +52,23 @@ exports.up = (pgm) => {
         }
     });
 
-    // 2. Index untuk performa
-    pgm.createIndex("log_verifikasi_mahasiswa", "mahasiswa_id");
-    pgm.createIndex("log_verifikasi_mahasiswa", "created_at");
+    pgm.createIndex("log_verifikasi_mahasiswa", "mahasiswa_id", { name: "idx_log_verifikasi_mahasiswa_mahasiswa_id" });
+    pgm.createIndex("log_verifikasi_mahasiswa", "status_verifikasi_id_old", { name: "idx_log_verifikasi_mahasiswa_status_old" });
+    pgm.createIndex("log_verifikasi_mahasiswa", "status_verifikasi_id_new", { name: "idx_log_verifikasi_mahasiswa_status_new" });
+    pgm.createIndex("log_verifikasi_mahasiswa", "verified_by", { name: "idx_log_verifikasi_mahasiswa_verified_by" });
+    pgm.createIndex("log_verifikasi_mahasiswa", "created_at", { name: "idx_log_verifikasi_mahasiswa_created_at" });
+    pgm.createIndex("log_verifikasi_mahasiswa", ["mahasiswa_id", "created_at"], { name: "idx_log_verifikasi_mahasiswa_mahasiswa_id_created_at" });
+    pgm.createIndex("log_verifikasi_mahasiswa", ["status_verifikasi_id_new", "created_at"], { name: "idx_log_verifikasi_mahasiswa_status_new_created_at" });
 
-    // 3. Function untuk log perubahan status verifikasi (as SQL)
+    // Function untuk log perubahan status verifikasi (as SQL)
     pgm.sql(`
         CREATE OR REPLACE FUNCTION fn_log_mahasiswa_verification_change()
         RETURNS TRIGGER AS $$
         BEGIN
             IF NEW.status_verifikasi_id <> OLD.status_verifikasi_id THEN
                 INSERT INTO log_verifikasi_mahasiswa (
-                    mahasiswa_id, 
-                    status_verifikasi_id_old, 
+                    mahasiswa_id,
+                    status_verifikasi_id_old,
                     status_verifikasi_id_new,
                     catatan_verifikasi,
                     verified_by
@@ -82,7 +85,7 @@ exports.up = (pgm) => {
         $$ LANGUAGE plpgsql;
     `);
 
-    // 4. Trigger untuk mencatat log verifikasi (as SQL)
+    // Trigger untuk mencatat log verifikasi (as SQL)
     pgm.sql(`
         CREATE TRIGGER trg_log_verifikasi_change
         AFTER UPDATE ON mahasiswa
@@ -97,5 +100,16 @@ exports.up = (pgm) => {
 exports.down = (pgm) => {
     pgm.sql(`DROP TRIGGER IF EXISTS trg_log_verifikasi_change ON mahasiswa`);
     pgm.sql(`DROP FUNCTION IF EXISTS fn_log_mahasiswa_verification_change`);
+
+    // Drop indexes first
+    pgm.dropIndex("log_verifikasi_mahasiswa", "mahasiswa_id", { name: "idx_log_verifikasi_mahasiswa_mahasiswa_id" });
+    pgm.dropIndex("log_verifikasi_mahasiswa", "created_at", { name: "idx_log_verifikasi_mahasiswa_created_at" });
+    pgm.dropIndex("log_verifikasi_mahasiswa", "status_verifikasi_id_old", { name: "idx_log_verifikasi_mahasiswa_status_old" });
+    pgm.dropIndex("log_verifikasi_mahasiswa", "status_verifikasi_id_new", { name: "idx_log_verifikasi_mahasiswa_status_new" });
+    pgm.dropIndex("log_verifikasi_mahasiswa", "verified_by", { name: "idx_log_verifikasi_mahasiswa_verified_by" });
+    pgm.dropIndex("log_verifikasi_mahasiswa", ["mahasiswa_id", "created_at"], { name: "idx_log_verifikasi_mahasiswa_mahasiswa_id_created_at" });
+    pgm.dropIndex("log_verifikasi_mahasiswa", ["status_verifikasi_id_new", "created_at"], { name: "idx_log_verifikasi_mahasiswa_status_new_created_at" });
+
+    // Then drop the table
     pgm.dropTable("log_verifikasi_mahasiswa");
 };

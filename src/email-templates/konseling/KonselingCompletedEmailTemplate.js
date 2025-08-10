@@ -14,9 +14,6 @@ const untukMahasiswa = (appName, namaMahasiswa, data) => {
 
     <p>Terima kasih telah menggunakan layanan konseling kami!</p>
     <p>Semoga sesi ini membantu Anda.</p>
-    
-    <p>Salam hangat,<br>
-    Tim ${appName}</p>
   `;
 
     return baseTemplate(content, appName, {

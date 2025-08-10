@@ -1,6 +1,8 @@
 const baseTemplate = require('../BaseTemplate');
 
 module.exports = (appName, verificationUrl) => {
+  const baseUrl = process.env.BASE_URL;
+
   const content = `
     <h3 style="margin-top: 0;">Verifikasi Email Anda</h3>
     <p>Silakan klik tombol di bawah untuk memverifikasi alamat email Anda:</p>
@@ -17,6 +19,11 @@ module.exports = (appName, verificationUrl) => {
     <p class="text-muted">
       Link ini akan kadaluarsa dalam 24 jam. Jika Anda tidak merasa mendaftar di ${appName}, 
       abaikan email ini.
+    </p>
+    
+    <p class="text-muted">
+      Jika link verifikasi sudah kadaluarsa, Anda dapat meminta link verifikasi baru dengan mengklik:
+      <a href="${baseUrl}/resend-verification-email">di sini</a>.
     </p>
   `;
 

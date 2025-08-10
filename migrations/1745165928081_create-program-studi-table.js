@@ -61,7 +61,39 @@ exports.up = (pgm) => {
     });
 
     pgm.createIndex("program_studi", "nama_program_studi", {
-        name: "idx_nama_program_studi_in_program_studi"
+        name: "idx_program_studi_nama_program_studi" 
+    });
+
+    pgm.createIndex("program_studi", "departement_id", {
+        name: "idx_program_studi_departement_id",
+    });
+
+    pgm.createIndex("program_studi", "jenjang", {
+        name: "idx_program_studi_jenjang",
+    });
+
+    pgm.createIndex("program_studi", ["departement_id", "jenjang"], {
+        name: "idx_program_studi_departement_jenjang",
+    });
+
+    pgm.createIndex("program_studi", ["nama_program_studi", "jenjang"], {
+        name: "idx_program_studi_nama_program_studi_jenjang",
+    });
+
+    pgm.createIndex("program_studi", "created_at", {
+        name: "idx_program_studi_created_at",
+    });
+
+    pgm.createIndex("program_studi", "deleted_at", {
+        name: "idx_program_studi_deleted_at",
+    });
+
+    pgm.createIndex("program_studi", "created_by", {
+        name: "idx_program_studi_created_by",
+    });
+
+    pgm.createIndex("program_studi", "updated_at", {
+        name: "idx_program_studi_updated_at",
     });
 
     pgm.sql(`
@@ -99,7 +131,6 @@ exports.up = (pgm) => {
         ((SELECT id FROM departement WHERE name = 'Departemen Program Pendidikan Jarak Jauh'), 'D4', 'PJJ Teknik Telekomunikasi'),
         ((SELECT id FROM departement WHERE name = 'Departemen Program Pendidikan Jarak Jauh'), 'D3', 'PJJ Teknik Informatika');
     `);
-
 };
 
 /**
@@ -108,5 +139,37 @@ exports.up = (pgm) => {
  * @returns {Promise<void> | void}
  */
 exports.down = (pgm) => {
+    pgm.dropIndex("program_studi", "nama_program_studi", {
+        name: "idx_program_studi_nama_program_studi" 
+    });
+
+    pgm.dropIndex("program_studi", "departement_id", {
+        name: "idx_program_studi_departement_id",
+    });
+
+    pgm.dropIndex("program_studi", "jenjang", {
+        name: "idx_program_studi_jenjang",
+    });
+
+    pgm.dropIndex("program_studi", ["departement_id", "jenjang"], {
+        name: "idx_program_studi_departement_jenjang",
+    });
+
+    pgm.dropIndex("program_studi", "created_at", {
+        name: "idx_program_studi_created_at",
+    });
+
+    pgm.dropIndex("program_studi", "deleted_at", {
+        name: "idx_program_studi_deleted_at",
+    });
+
+    pgm.dropIndex("program_studi", "created_by", {
+        name: "idx_program_studi_created_by",
+    });
+
+    pgm.dropIndex("program_studi", "updated_at", {
+        name: "idx_program_studi_updated_at",
+    });
+
     pgm.dropTable('program_studi');
 };

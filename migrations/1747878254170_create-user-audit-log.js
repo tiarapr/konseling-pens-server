@@ -16,7 +16,12 @@ exports.up = (pgm) => {
       primaryKey: true,
       default: pgm.func("gen_random_uuid()"),
     },
-    user_id: { type: 'uuid', notNull: true },
+    user_id: {
+      type: "UUID",
+      notNull: true,
+      references: '"user"(id)',
+      onUpdate: "CASCADE",
+    },
     action: { type: 'varchar(10)', notNull: true },
     old_data: { type: 'jsonb' },
     new_data: { type: 'jsonb' },

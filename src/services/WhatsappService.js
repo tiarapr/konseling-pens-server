@@ -66,7 +66,7 @@ class WhatsAppService {
   async sendOtpMessage(phone, otp) {
     return this.enqueueTemplateMessage(
       phone,
-      'kode_otp_login',
+      'otp_login',
       'id',
       [{ type: 'text', text: otp }]
     );

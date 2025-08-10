@@ -17,8 +17,6 @@ const untukMahasiswa = (appName, namaMahasiswa, data) => {
     
     <p>Mohon untuk memberikan konfirmasi kehadiran di dashboard sistem maksimal 2 hari sebelum tanggal pelaksanaan.</p>
     <p>Jika tidak ada konfirmasi, sesi konseling tidak dapat dilayani.</p>
-    <p>Terima kasih,</p>
-    <p>Tim ${appName}</p>
   `;
 
   return baseTemplate(content, appName, {
@@ -43,8 +41,6 @@ const untukKonselor = (appName, namaKonselor, data) => {
 
     <p>Harap pantau email Anda untuk informasi lebih lanjut terkait konfirmasi kehadiran mahasiswa.</p>
     <p>Jika ada perubahan atau pertanyaan, silakan cek dashboard sistem.</p>
-    <p>Terima kasih atas dedikasi Anda,</p>
-    <p>Tim ${appName}</p>
   `;
 
   return baseTemplate(content, appName, {
