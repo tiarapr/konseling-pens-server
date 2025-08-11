@@ -27,6 +27,7 @@ exports.up = (pgm) => {
     user_id: {
       type: 'UUID',
       notNull: true,
+      unique: true,
       references: '"user"(id)',
       onUpdate: 'CASCADE',
     },
@@ -64,20 +65,58 @@ exports.up = (pgm) => {
     },
   });
 
-  pgm.createIndex('mahasiswa', 'nama_lengkap');
-  pgm.createIndex('mahasiswa', 'program_studi_id');
-  pgm.createIndex('mahasiswa', 'status_verifikasi_id');
-  pgm.createIndex('mahasiswa', 'is_active');
-  pgm.createIndex('mahasiswa', 'deleted_at');
+  pgm.createIndex('mahasiswa', 'nama_lengkap', { name: 'idx_mahasiswa_nama_lengkap' });
+
+  pgm.createIndex('mahasiswa', 'program_studi_id', { name: 'idx_mahasiswa_program_studi_id' });
+
+  pgm.createIndex('mahasiswa', 'status_verifikasi_id', { name: 'idx_mahasiswa_status_verifikasi_id' });
+
+  pgm.createIndex('mahasiswa', 'verified_at', { name: 'idx_mahasiswa_verified_at' });
+
+  pgm.createIndex('mahasiswa', 'verified_by', { name: 'idx_mahasiswa_verified_by' });
+
+  pgm.createIndex('mahasiswa', 'is_active', { name: 'idx_mahasiswa_is_active' });
+
+  pgm.createIndex('mahasiswa', 'tanggal_lahir', { name: 'idx_mahasiswa_tanggal_lahir' });
+
+  pgm.createIndex('mahasiswa', 'jenis_kelamin', { name: 'idx_mahasiswa_jenis_kelamin' });
+
+  pgm.createIndex('mahasiswa', ['program_studi_id', 'is_active', 'nama_lengkap'], { name: 'idx_mahasiswa_prodi_active_nama' });
+
+  pgm.createIndex('mahasiswa', 'created_at', { name: 'idx_mahasiswa_created_at' });
+
+  pgm.createIndex('mahasiswa', 'updated_at', { name: 'idx_mahasiswa_updated_at' });
+  
+  pgm.createIndex('mahasiswa', 'deleted_at', { name: 'idx_mahasiswa_deleted_at' });
 };
 
 /**
  * @param {import('node-pg-migrate').MigrationBuilder} pgm
  */
 exports.down = (pgm) => {
-  // Hapus tabel mahasiswa
-  pgm.dropTable("mahasiswa");
+  pgm.dropIndex('mahasiswa', 'nama_lengkap', { name: 'idx_mahasiswa_nama_lengkap' });
 
-  // Hapus tabel status_verifikasi
-  pgm.dropTable('status_verifikasi');
+  pgm.dropIndex('mahasiswa', 'program_studi_id', { name: 'idx_mahasiswa_program_studi_id' });
+
+  pgm.dropIndex('mahasiswa', 'status_verifikasi_id', { name: 'idx_mahasiswa_status_verifikasi_id' });
+
+  pgm.dropIndex('mahasiswa', 'verified_at', { name: 'idx_mahasiswa_verified_at' });
+
+  pgm.dropIndex('mahasiswa', 'verified_by', { name: 'idx_mahasiswa_verified_by' });
+
+  pgm.dropIndex('mahasiswa', 'is_active', { name: 'idx_mahasiswa_is_active' });
+
+  pgm.dropIndex('mahasiswa', 'tanggal_lahir', { name: 'idx_mahasiswa_tanggal_lahir' });
+
+  pgm.dropIndex('mahasiswa', 'jenis_kelamin', { name: 'idx_mahasiswa_jenis_kelamin' });
+
+  pgm.dropIndex('mahasiswa', ['program_studi_id', 'is_active', 'nama_lengkap'], { name: 'idx_mahasiswa_prodi_active_nama' });
+
+  pgm.dropIndex('mahasiswa', 'created_at', { name: 'idx_mahasiswa_created_at' });
+
+  pgm.dropIndex('mahasiswa', 'updated_at', { name: 'idx_mahasiswa_updated_at' });
+  
+  pgm.dropIndex('mahasiswa', 'deleted_at', { name: 'idx_mahasiswa_deleted_at' });
+
+  pgm.dropTable("mahasiswa");
 };

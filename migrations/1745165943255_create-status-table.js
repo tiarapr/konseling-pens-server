@@ -9,7 +9,6 @@ exports.shorthands = undefined;
  * @returns {Promise<void> | void}
  */
 exports.up = (pgm) => {
-    // Buat tabel status
     pgm.createTable('status', {
         id: {
             type: 'UUID',
@@ -24,6 +23,7 @@ exports.up = (pgm) => {
         label: {
             type: 'VARCHAR(100)',
             notNull: true,
+            unique: true,
         },
         warna: {
             type: 'VARCHAR(20)',
@@ -32,6 +32,7 @@ exports.up = (pgm) => {
         urutan: {
             type: 'INT',
             notNull: true,
+            unique: true,
         },
         is_active: {
             type: 'BOOLEAN',
@@ -43,11 +44,11 @@ exports.up = (pgm) => {
     // Seed data status
     pgm.sql(`
         INSERT INTO status (kode_status, label, warna, urutan) VALUES
-        ('dijadwalkan', 'Didijadwalkan', 'info', 1),
+        ('dijadwalkan', 'Dijadwalkan', 'info', 1),
         ('berlangsung', 'Berlangsung', 'primary', 2),
         ('selesai', 'Selesai', 'success', 3),
         ('dibatalkan', 'Dibatalkan', 'error', 4),
-        ('didijadwalkan_ulang', 'Didijadwalkan Ulang', 'warning', 5),
+        ('dijadwalkan_ulang', 'Dijadwalkan Ulang', 'warning', 5),
         ('batal_otomatis', 'Dibatalkan Otomatis', 'dark', 6);
     `);
 };

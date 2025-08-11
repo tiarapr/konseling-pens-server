@@ -42,6 +42,22 @@ exports.up = (pgm) => {
     pgm.createIndex('otp', 'email', {
         name: 'idx_otp_email'
     });
+    
+    pgm.createIndex('otp', 'expires_at', {
+        name: 'idx_otp_expires_at'
+    });
+
+    pgm.createIndex('otp', 'is_used', {
+        name: 'idx_otp_is_used'
+    });
+
+    pgm.createIndex('otp', ['email', 'is_used', 'expires_at'], {
+        name: 'idx_otp_email_is_used_expires_at'
+    });
+
+    pgm.createIndex('otp', 'created_at', {
+        name: 'idx_otp_created_at'
+    });
 };
 
 /**
@@ -53,5 +69,10 @@ exports.down = (pgm) => {
     pgm.dropIndex('otp', 'email', {
         name: 'idx_otp_email'
     });
+    pgm.dropIndex('otp', ['email', 'is_used', 'expires_at'], { name: 'idx_otp_email_is_used_expires_at' });
+    pgm.dropIndex('otp', 'expires_at', { name: 'idx_otp_expires_at' });
+    pgm.dropIndex('otp', 'is_used', { name: 'idx_otp_is_used' });
+    pgm.dropIndex('otp', 'created_at', { name: 'idx_otp_created_at' });
+
     pgm.dropTable('otp');
 };

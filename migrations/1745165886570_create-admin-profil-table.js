@@ -72,7 +72,23 @@ exports.up = (pgm) => {
     });
 
     pgm.createIndex("admin_profil", "nama_lengkap", {
-        name: "idx_nama_lengkap_in_admin_profil",
+        name: "idx_nama_lengkap_admin_profil",
+    });
+
+    pgm.createIndex("admin_profil", "created_at", {
+        name: "idx_admin_profil_created_at",
+    });
+
+    pgm.createIndex("admin_profil", "created_by", {
+        name: "idx_admin_profil_created_by",
+    });
+
+    pgm.createIndex("admin_profil", "updated_at", {
+        name: "idx_admin_profil_updated_at",
+    });
+
+    pgm.createIndex("admin_profil", "deleted_at", {
+        name: "idx_admin_profil_deleted_at",
     });
 };
 
@@ -82,5 +98,26 @@ exports.up = (pgm) => {
  * @returns {Promise<void> | void}
  */
 exports.down = (pgm) => {
+
+    pgm.dropIndex("admin_profil", "nama_lengkap", {
+        name: "idx_nama_lengkap_admin_profil",
+    });
+
+    pgm.dropIndex("admin_profil", "created_at", {
+        name: "idx_admin_profil_created_at",
+    });
+
+    pgm.dropIndex("admin_profil", "created_by", {
+        name: "idx_admin_profil_created_by",
+    });
+
+    pgm.dropIndex("admin_profil", "updated_at", {
+        name: "idx_admin_profil_updated_at",
+    });
+
+    pgm.dropIndex("admin_profil", "deleted_at", {
+        name: "idx_admin_profil_deleted_at",
+    });
+
     pgm.dropTable('admin_profil');
 };

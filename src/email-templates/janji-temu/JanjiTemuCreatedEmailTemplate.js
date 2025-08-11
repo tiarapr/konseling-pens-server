@@ -39,7 +39,6 @@ const untukAdmin = (appName, namaMahasiswa, data) => {
     </div>
 
     <p>Silakan segera melakukan pengecekan dan konfirmasi jadwal sesuai ketersediaan.</p>
-    <p>Terima kasih atas perhatian dan kerjasamanya.</p>
   `;
 
   return baseTemplate(content, appName, {

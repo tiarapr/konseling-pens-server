@@ -10,10 +10,10 @@ exports.shorthands = undefined;
  */
 exports.up = (pgm) => {
     pgm.sql(`
-        CREATE TRIGGER trg_rekap_harian
+        CREATE TRIGGER trg_rekap_janji_temu_harian
         AFTER INSERT ON janji_temu
         FOR EACH STATEMENT
-        EXECUTE FUNCTION rekap_harian_trigger();
+        EXECUTE FUNCTION fn_rekap_janji_temu_harian();
     `);
 };
 
@@ -24,6 +24,6 @@ exports.up = (pgm) => {
  */
 exports.down = (pgm) => {
     pgm.sql(`
-        DROP TRIGGER IF EXISTS trg_rekap_harian ON janji_temu;
+        DROP TRIGGER IF EXISTS trg_rekap_janji_temu_harian ON janji_temu;
     `);
 };

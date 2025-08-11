@@ -214,7 +214,7 @@ class MahasiswaHandler {
 
             return h.response({
                 status: 'success',
-                message: 'Permintaan verifikasi ulang berhasil dikirim.',
+                message: 'Permintaan tinjau ulang berhasil dikirim.',
                 data: { mahasiswa: updatedMahasiswa },
             }).code(200);
         } catch (error) {
@@ -270,14 +270,6 @@ class MahasiswaHandler {
             const mahasiswa = await this._service.getById(id);
             if (!mahasiswa) {
                 throw new NotFoundError('Mahasiswa tidak ditemukan');
-            }
-
-            // Pastikan requester adalah master
-            const requesterRole = request.auth.credentials.jwt.user.role_name;
-            const isAdmin = requesterRole === 'admin';
-
-            if (!isAdmin) {
-                throw Boom.forbidden('Tidak diizinkan menghapus data ini');
             }
 
             const userId = mahasiswa.user_id;

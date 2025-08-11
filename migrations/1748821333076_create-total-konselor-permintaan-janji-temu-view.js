@@ -10,14 +10,14 @@ exports.shorthands = undefined;
  */
 exports.up = (pgm) => {
   pgm.sql(`
-    CREATE OR REPLACE VIEW total_konselor_permintaan_janji_temu_view AS
+    CREATE OR REPLACE VIEW vw_total_permintaan_janji_temu_konselor AS
     SELECT
         kp.id AS konselor_id,
         kp.nama_lengkap AS konselor,
         COUNT(DISTINCT jt.id) AS total_permintaan
     FROM konselor_profil kp
     LEFT JOIN janji_temu jt ON kp.id = jt.preferensi_konselor_id
-    WHERE jt.deleted_at IS NULL  -- Pastikan hanya janji temu yang tidak dihapus
+    WHERE jt.deleted_at IS NULL 
     GROUP BY kp.id, kp.nama_lengkap
     ORDER BY total_permintaan DESC;
   `);
@@ -30,5 +30,5 @@ exports.up = (pgm) => {
  */
 exports.down = (pgm) => {
   // Drop view jika migrasi di-rollback
-  pgm.sql('DROP VIEW IF EXISTS total_konselor_permintaan_janji_temu_view');
+  pgm.sql('DROP VIEW IF EXISTS vw_total_permintaan_janji_temu_konselor');
 };

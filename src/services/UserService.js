@@ -20,6 +20,7 @@ class UserService {
 
   async addUser(client, { email, phoneNumber, password, isVerified = false, roleId, createdBy }) {
     await this.verifyNewEmail(client, email);
+    await this.verifyUserPhoneNumber(phoneNumber);
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -150,7 +151,7 @@ class UserService {
     const result = await client.query(query);
 
     if (result.rows.length > 0) {
-      throw new InvariantError('Email is already in use.');
+      throw new InvariantError('Email telah digunakan atau terdaftar di sistem.');
     }
   }
 
@@ -181,7 +182,7 @@ class UserService {
     const result = await this._pool.query(query);
 
     if (result.rows.length > 0) {
-      throw new InvariantError('Phone Number is already in use.');
+      throw new InvariantError('Nomor Whatsapp telah digunakan atau terdaftar di sistem');
     }
   }
 
@@ -294,18 +295,18 @@ class UserService {
     const result = await this._pool.query(query);
 
     if (!result.rows.length) {
-      throw new AuthenticationError("Invalid credentials.");
+      throw new AuthenticationError("Kredensial tidak valid.");
     }
 
     const { id, password: hashedPassword, is_verified } = result.rows[0];
     const isPasswordMatch = await bcrypt.compare(password, hashedPassword);
 
     if (!isPasswordMatch) {
-      throw new AuthenticationError("Invalid credentials.");
+      throw new AuthenticationError("Kredensial tidak valid.");
     }
 
     if (!is_verified) {
-      throw new AuthorizationError("Please verify your email address first");
+      throw new AuthorizationError("Verifikasi email anda terlebih dahulu untuk mengaktifkan akun.");
     }
 
     return id;

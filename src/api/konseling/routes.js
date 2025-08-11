@@ -37,7 +37,7 @@ const routes = (handler) => [
     // MILIK KONSELOR
     {
         method: 'GET',
-        path: '/konseling/my',
+        path: '/konseling/konselor',
         handler: handler.getKonselingByKonselorIdHandler,
         options: {
             auth: 'basicAndJwtStrategy',
@@ -50,17 +50,6 @@ const routes = (handler) => [
         handler: handler.getMyKonselingHandler,
         options: {
             auth: 'basicAndJwtStrategy',
-        },
-    },
-    {
-        method: 'PUT',
-        path: '/konseling/{id}',
-        handler: handler.updateKonselingHandler,
-        options: {
-            auth: 'basicAndJwtStrategy',
-            pre: [
-                { method: checkPermission('update_konseling', 'manage_konselings') }
-            ]
         },
     },
     {

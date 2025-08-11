@@ -1,7 +1,7 @@
 const { Pool } = require("pg");
 const InvariantError = require("../exceptions/InvariantError");
 const NotFoundError = require("../exceptions/NotFoundError");
-const ClientError = require('../exceptions/ClientError');  // Adding ClientError for handling client-specific issues
+const ClientError = require('../exceptions/ClientError');  
 
 class KonselorProfilService {
   constructor() {

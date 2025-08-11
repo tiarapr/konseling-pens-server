@@ -63,7 +63,7 @@ exports.up = (pgm) => {
 
   // Create the function to refresh the materialized view
   pgm.sql(`
-    CREATE OR REPLACE FUNCTION refresh_konselor_stats()
+    CREATE OR REPLACE FUNCTION fn_refresh_konselor_stats()
     RETURNS VOID AS $$ 
     BEGIN
       REFRESH MATERIALIZED VIEW CONCURRENTLY mv_konselor_stats;
@@ -78,7 +78,7 @@ exports.up = (pgm) => {
  * @returns {Promise<void> | void}
  */
 exports.down = (pgm) => {
-  pgm.sql('DROP FUNCTION IF EXISTS refresh_konselor_stats()');
+  pgm.sql('DROP FUNCTION IF EXISTS fn_refresh_konselor_stats()');
   pgm.sql('DROP MATERIALIZED VIEW IF EXISTS mv_konselor_stats');
   pgm.sql('DROP INDEX IF EXISTS mv_konselor_stats_unique_index');
 };

@@ -39,7 +39,7 @@ exports.up = (pgm) => {
             type: "TEXT",
             notNull: false,
             default: null,
-        }, 
+        },
         created_at: {
             type: "TIMESTAMP",
             notNull: true,
@@ -79,9 +79,29 @@ exports.up = (pgm) => {
             onUpdate: 'CASCADE',
         },
     });
-    
+
     pgm.createIndex("konselor_profil", "nama_lengkap", {
-        name: "idx_nama_lengkap_in_konselor_profil",
+        name: "idx_konselor_profil_nama_lengkap", 
+    });
+
+    pgm.createIndex("konselor_profil", "spesialisasi", {
+        name: "idx_konselor_profil_spesialisasi",
+    });
+
+    pgm.createIndex("konselor_profil", "created_at", {
+        name: "idx_konselor_profil_created_at",
+    });
+
+    pgm.createIndex("konselor_profil", "created_by", {
+        name: "idx_konselor_profil_created_by",
+    });
+
+    pgm.createIndex("konselor_profil", "updated_at", {
+        name: "idx_konselor_profil_updated_at",
+    });
+
+    pgm.createIndex("konselor_profil", "deleted_at", {
+        name: "idx_konselor_profil_deleted_at",
     });
 };
 
@@ -91,5 +111,29 @@ exports.up = (pgm) => {
  * @returns {Promise<void> | void}
  */
 exports.down = (pgm) => {
+    pgm.dropIndex("konselor_profil", "nama_lengkap", {
+        name: "idx_konselor_profil_nama_lengkap", 
+    });
+
+    pgm.dropIndex("konselor_profil", "spesialisasi", {
+        name: "idx_konselor_profil_spesialisasi",
+    });
+
+    pgm.dropIndex("konselor_profil", "created_at", {
+        name: "idx_konselor_profil_created_at",
+    });
+
+    pgm.dropIndex("konselor_profil", "created_by", {
+        name: "idx_konselor_profil_created_by",
+    });
+
+    pgm.dropIndex("konselor_profil", "updated_at", {
+        name: "idx_konselor_profil_updated_at",
+    });
+
+    pgm.dropIndex("konselor_profil", "deleted_at", {
+        name: "idx_konselor_profil_deleted_at",
+    });
+
     pgm.dropTable('konselor_profil');
 };

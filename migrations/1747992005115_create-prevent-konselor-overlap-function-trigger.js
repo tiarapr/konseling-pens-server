@@ -8,7 +8,7 @@ exports.shorthands = undefined;
  */
 exports.up = (pgm) => {
     pgm.sql(`
-        CREATE OR REPLACE FUNCTION prevent_konselor_overlap()
+        CREATE OR REPLACE FUNCTION fn_prevent_konselor_overlap()
         RETURNS trigger AS $$
         BEGIN
         IF EXISTS (
@@ -26,10 +26,10 @@ exports.up = (pgm) => {
         END;
         $$ LANGUAGE plpgsql;
 
-        CREATE TRIGGER prevent_konselor_overlap
+        CREATE TRIGGER trg_prevent_konselor_overlap
         BEFORE INSERT OR UPDATE ON konseling
         FOR EACH ROW
-        EXECUTE FUNCTION prevent_konselor_overlap();
+        EXECUTE FUNCTION fn_prevent_konselor_overlap();
   `);
 };
 
@@ -38,7 +38,7 @@ exports.up = (pgm) => {
  */
 exports.down = (pgm) => {
     pgm.sql(`
-        DROP TRIGGER IF EXISTS prevent_konselor_overlap ON konseling;
-        DROP FUNCTION IF EXISTS prevent_konselor_overlap;
+        DROP TRIGGER IF EXISTS trg_prevent_konselor_overlap ON konseling;
+        DROP FUNCTION IF EXISTS fn_prevent_konselor_overlap;
     `);
 };

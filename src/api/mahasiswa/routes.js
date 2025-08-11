@@ -63,9 +63,9 @@ const routes = (handler) => [
         handler: handler.getOwnMahasiswaHandler,
         options: {
             auth: 'basicAndJwtStrategy',
-            pre: [
-                { method: checkPermission(['view_own_mahasiswa']) }
-            ]
+            // pre: [
+            //     { method: checkPermission(['view_own_mahasiswa']) }
+            // ]
         },
     },
     {
@@ -103,7 +103,7 @@ const routes = (handler) => [
     },
     {
         method: 'PUT',
-        path: '/mahasiswa/{id}/verifikasi-ulang',
+        path: '/mahasiswa/{id}/tinjau-ulang',
         handler: handler.requestReVerificationHandler,
         options: {
             auth: 'basicAndJwtStrategy'
@@ -122,9 +122,6 @@ const routes = (handler) => [
                 parse: true,
                 maxBytes: 10 * 1024 * 1024, // max 10MB
             },
-            pre: [
-                { method: checkPermission('update_mahasiswa') }
-            ]
         },
     },
     {

@@ -18,8 +18,23 @@ class MahasiswaService {
     return this._pool.connect();
   }
 
+  async verifyNRP(nrp) {
+    const query = {
+      text: 'SELECT nrp FROM mahasiswa WHERE nrp = $1',
+      values: [nrp],
+    };
+
+    const result = await this._pool.query(query);
+
+    if (result.rows.length > 0) {
+      throw new InvariantError(`Mahasiswa dengan NRP ${nrp} sudah terdaftar di sistem`);
+    }
+  }
+
   async create(client, payload) {
     const { nrp, nama_lengkap, program_studi_id, tanggal_lahir, jenis_kelamin, ktm_url, user_id, status_verifikasi_id } = payload;
+
+    await this.verifyNRP(nrp);
 
     const query = {
       text: `INSERT INTO mahasiswa (
@@ -45,8 +60,10 @@ class MahasiswaService {
              ps.nama_program_studi, 
              sv.id AS status_verifikasi_id,
              sv.label AS status_verifikasi_label,
-             sv.warna AS status_verifikasi_warna
+             sv.warna AS status_verifikasi_warna,
+             u.phone_number
         FROM mahasiswa
+        LEFT JOIN "user" u ON mahasiswa.user_id = u.id
         LEFT JOIN program_studi ps ON mahasiswa.program_studi_id = ps.id
         LEFT JOIN status_verifikasi sv ON mahasiswa.status_verifikasi_id = sv.id
        WHERE mahasiswa.deleted_at IS NULL
@@ -59,6 +76,7 @@ class MahasiswaService {
       id: row.id,
       nrp: row.nrp,
       nama_lengkap: row.nama_lengkap,
+      phone_number: row.phone_number,
       program_studi: {
         id: row.program_studi_id,
         jenjang: row.jenjang,
@@ -133,12 +151,51 @@ class MahasiswaService {
   }
 
   async getByNrp(nrp) {
-    const result = await this._pool.query({
-      text: `SELECT * FROM mahasiswa WHERE nrp = $1 AND deleted_at IS NULL`,
+    const query = {
+      text: `
+      SELECT mahasiswa.*, 
+             ps.id AS program_studi_id,
+             ps.jenjang, 
+             ps.nama_program_studi, 
+             sv.id AS status_verifikasi_id,
+             sv.label AS status_verifikasi_label
+        FROM mahasiswa
+        LEFT JOIN program_studi ps ON mahasiswa.program_studi_id = ps.id
+        LEFT JOIN status_verifikasi sv ON mahasiswa.status_verifikasi_id = sv.id
+       WHERE mahasiswa.nrp = $1 AND mahasiswa.deleted_at IS NULL
+    `,
       values: [nrp],
-    });
+    };
 
-    return result.rows[0] || null;
+    const result = await this._pool.query(query);
+
+    if (!result.rows.length) return null;
+
+    const row = result.rows[0];
+
+    const formattedResult = {
+      id: row.id,
+      nrp: row.nrp,
+      nama_lengkap: row.nama_lengkap,
+      program_studi: {
+        id: row.program_studi_id,
+        jenjang: row.jenjang,
+        nama: row.nama_program_studi
+      },
+      status_verifikasi: {
+        id: row.status_verifikasi_id,
+        label: row.status_verifikasi_label
+      },
+      ktm_url: row.ktm_url,
+      jenis_kelamin: row.jenis_kelamin,
+      tanggal_lahir: row.tanggal_lahir,
+      user_id: row.user_id,
+      is_active: row.is_active,
+      created_at: row.created_at,
+      updated_at: row.updated_at
+    };
+
+    return formattedResult;
   }
 
   async getByUserId(userId) {
@@ -202,8 +259,10 @@ class MahasiswaService {
            ps.nama_program_studi, 
            sv.id AS status_verifikasi_id,
            sv.label AS status_verifikasi_label,
-           sv.warna AS status_verifikasi_warna
+           sv.warna AS status_verifikasi_warna,
+           u.phone_number
     FROM mahasiswa
+    LEFT JOIN "user" u ON mahasiswa.user_id = u.id
     LEFT JOIN program_studi ps ON mahasiswa.program_studi_id = ps.id
     LEFT JOIN status_verifikasi sv ON mahasiswa.status_verifikasi_id = sv.id
     WHERE mahasiswa.deleted_at IS NULL
@@ -482,7 +541,7 @@ class MahasiswaService {
         LEFT JOIN catatan_konseling c ON k.id = c.konseling_id
         WHERE m.nrp = $1 
           AND m.deleted_at IS NULL
-          AND k.id IS NOT NULL  -- Pastikan data konseling valid
+          AND k.id IS NOT NULL
       )
       SELECT * FROM konseling_data
       ORDER BY tanggal_konseling DESC, jam_mulai ASC
@@ -500,10 +559,10 @@ class MahasiswaService {
     const rekamMedis = [];
 
     result.rows.forEach(row => {
-      const konselorName = row.nama_lengkap 
+      const konselorName = row.nama_lengkap
         ? row.nama_konselor
         : 'Tidak ada konselor';
-      
+
       const statusKonseling = row.status_label || 'Status tidak ditemukan';
 
       let durasi = null;

@@ -2,7 +2,7 @@ const Joi = require("joi");
 
 // Regex patterns untuk konsistensi dengan database
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-const PHONE_REGEX = /^[1-9][0-9]{4,14}$/; // Kode negara (1-3 digit) + nomor (min 4 digit)
+const PHONE_REGEX = /^62[0-9]{8,13}$/;
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/;
 
 const CreateKonselorAccountPayloadSchema = Joi.object({

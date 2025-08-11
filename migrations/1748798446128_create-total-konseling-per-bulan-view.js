@@ -10,7 +10,7 @@ exports.shorthands = undefined;
  */
 exports.up = (pgm) => {
      pgm.sql(`
-         CREATE OR REPLACE VIEW view_total_konseling_per_bulan_per_status AS
+         CREATE OR REPLACE VIEW vw_total_konseling_per_bulan_per_status AS
     SELECT
       DATE_TRUNC('month', k.tanggal_konseling)::date AS bulan,
       s.kode_status,
@@ -31,5 +31,5 @@ exports.up = (pgm) => {
  * @returns {Promise<void> | void}
  */
 exports.down = (pgm) => {
-     pgm.sql('DROP VIEW IF EXISTS view_total_konseling_per_bulan_per_status;');
+     pgm.sql('DROP VIEW IF EXISTS vw_total_konseling_per_bulan_per_status;');
 };

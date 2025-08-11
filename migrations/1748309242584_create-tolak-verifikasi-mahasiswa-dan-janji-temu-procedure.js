@@ -10,9 +10,8 @@ exports.shorthands = undefined;
  */
 exports.up = (pgm) => {
     pgm.sql(`
-        CREATE OR REPLACE PROCEDURE tolak_verifikasi_mahasiswa_dan_janji_temu(
+        CREATE OR REPLACE PROCEDURE prc_tolak_verifikasi_mahasiswa_dan_janji_temu(
             p_mahasiswa_id UUID,
-            p_status_verifikasi_id UUID,     -- ID status 'ditolak'
             p_catatan_verifikasi TEXT,
             p_verified_at TIMESTAMP,
             p_verified_by UUID,
@@ -24,38 +23,62 @@ exports.up = (pgm) => {
         AS $$
         DECLARE
             v_nrp VARCHAR(15);
+            v_mahasiswa_exists BOOLEAN;
+            v_status_ditolak_id UUID; -- Variable to hold the UUID of 'ditolak' status
         BEGIN
-            -- Ambil NRP mahasiswa
-            SELECT nrp INTO v_nrp FROM mahasiswa WHERE id = p_mahasiswa_id AND deleted_at IS NULL;
+            -- Get the ID for the 'ditolak' status from the status_verifikasi table
+            SELECT id INTO v_status_ditolak_id FROM status_verifikasi WHERE kode_status = 'ditolak' AND is_active = TRUE;
 
-            IF v_nrp IS NULL THEN
-                RAISE EXCEPTION 'Mahasiswa tidak ditemukan';
+            -- Check if the 'ditolak' status exists
+            IF v_status_ditolak_id IS NULL THEN
+                RAISE EXCEPTION 'Status verifikasi "ditolak" tidak ditemukan atau tidak aktif di tabel status_verifikasi.';
             END IF;
 
-            -- Update status verifikasi mahasiswa menjadi 'ditolak'
+            -- Check if the student exists before proceeding
+            SELECT EXISTS (SELECT 1 FROM mahasiswa WHERE id = p_mahasiswa_id AND deleted_at IS NULL) INTO v_mahasiswa_exists;
+
+            IF NOT v_mahasiswa_exists THEN
+                RAISE EXCEPTION 'Mahasiswa dengan ID % tidak ditemukan atau sudah dihapus.', p_mahasiswa_id;
+            END IF;
+
+            -- Get NRP of the student
+            SELECT nrp INTO v_nrp
+            FROM mahasiswa
+            WHERE id = p_mahasiswa_id AND deleted_at IS NULL;
+
+            -- Update student verification status to 'ditolak' (rejected)
             UPDATE mahasiswa
-            SET status_verifikasi_id = p_status_verifikasi_id,
+            SET
+                status_verifikasi_id = v_status_ditolak_id, -- Use the dynamically fetched ID
                 catatan_verifikasi = p_catatan_verifikasi,
                 verified_at = p_verified_at,
                 verified_by = p_verified_by,
                 updated_at = NOW(),
                 updated_by = p_updated_by
-            WHERE id = p_mahasiswa_id AND deleted_at IS NULL;
+            WHERE
+                id = p_mahasiswa_id
+                AND deleted_at IS NULL;
 
-            -- Update semua janji temu mahasiswa tsb yang belum ditolak menjadi 'ditolak'
+            -- Update all of the student's appointments that are not already 'ditolak' (rejected) to 'ditolak'
+            -- The 'status' column in janji_temu is of type status_janji_temu (ENUM),
+            -- so 'ditolak' directly refers to the ENUM value.
             UPDATE janji_temu
-            SET status = 'ditolak',
+            SET
+                status = 'ditolak', -- Refers to the ENUM value 'ditolak'
                 status_changed_at = NOW(),
                 status_changed_by = p_status_changed_by,
-                alasan_penolakan = COALESCE(p_alasan_penolakan, 'Pengajuan ditolak karena status verifikasi mahasiswa ditolak'),
+                alasan_penolakan = COALESCE(p_alasan_penolakan, 'Pengajuan janji temu ditolak karena status verifikasi mahasiswa ditolak.'),
                 updated_at = NOW(),
                 updated_by = p_updated_by
-            WHERE nrp = v_nrp
-            AND status != 'ditolak'
-            AND deleted_at IS NULL;
+            WHERE
+                nrp = v_nrp
+                AND status != 'ditolak' -- Only update if not already rejected
+                AND deleted_at IS NULL;
+
+            RAISE NOTICE 'Verifikasi mahasiswa ID % berhasil ditolak dan janji temu terkait diperbarui.', p_mahasiswa_id;
         END;
         $$;
-`);
+    `);
 };
 
 /**
@@ -63,10 +86,10 @@ exports.up = (pgm) => {
  * @param run {() => void | undefined}
  * @returns {Promise<void> | void}
  */
-exports.down = (pgm) => { 
+exports.down = (pgm) => {
     pgm.sql(`
-        DROP PROCEDURE IF EXISTS tolak_verifikasi_mahasiswa_dan_janji_temu(
-            UUID, UUID, TEXT, TIMESTAMP, UUID, TEXT, UUID, UUID
+        DROP PROCEDURE IF EXISTS prc_tolak_verifikasi_mahasiswa_dan_janji_temu(
+            UUID, TEXT, TIMESTAMP, UUID, TEXT, UUID, UUID
         );
     `);
 };

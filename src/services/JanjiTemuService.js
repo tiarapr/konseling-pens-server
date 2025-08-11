@@ -23,6 +23,7 @@ class JanjiTemuService {
           jt.id,
           jt.nomor_tiket,
           m.nama_lengkap AS nama_mahasiswa,
+          u.phone_number,
           jt.nrp,
           jt.preferensi_konselor_id,
           kp.nama_lengkap AS nama_konselor,
@@ -45,6 +46,7 @@ class JanjiTemuService {
           jt.deleted_at
         FROM janji_temu jt
         JOIN mahasiswa m ON jt.nrp = m.nrp
+        JOIN "user" u ON m.user_id = u.id
         LEFT JOIN konselor_profil kp ON jt.preferensi_konselor_id = kp.id
         WHERE jt.deleted_at IS NULL
         ORDER BY jt.tanggal_pengajuan DESC
@@ -155,8 +157,7 @@ class JanjiTemuService {
         const tanggal_pengajuan = new Date();
 
         const query = {
-            text: `
-        INSERT INTO janji_temu (
+            text: `INSERT INTO janji_temu (
           nomor_tiket, nrp, tipe_konsultasi, preferensi_konselor_id,
           jadwal_utama_tanggal, jadwal_utama_jam_mulai, jadwal_utama_jam_selesai,
           jadwal_alternatif_tanggal, jadwal_alternatif_jam_mulai, jadwal_alternatif_jam_selesai,
@@ -166,8 +167,7 @@ class JanjiTemuService {
           $5, $6, $7,
           $8, $9, $10,
           $11, 'menunggu_konfirmasi', $12
-        ) RETURNING id, nomor_tiket
-      `,
+        ) RETURNING id, nomor_tiket`,
             values: [
                 nomor_tiket, nrp, tipe_konsultasi, preferensi_konselor_id,
                 jadwal_utama_tanggal, jadwal_utama_jam_mulai, jadwal_utama_jam_selesai,
@@ -176,12 +176,21 @@ class JanjiTemuService {
             ],
         };
 
-        const result = await this._pool.query(query);
-        if (!result.rows.length) {
-            throw new InvariantError("Gagal membuat janji temu");
-        }
+        try {
+            const result = await this._pool.query(query);
 
-        return result.rows[0];
+            if (!result.rows.length) {
+                throw new InvariantError("Gagal membuat janji temu");
+            }
+
+            return result.rows[0];
+        } catch (error) {
+            if (error.code === 'P0001') {
+                throw new InvariantError(error.message);
+            }
+
+            throw error;
+        }
     }
 
     async updateStatus(id, payload) {

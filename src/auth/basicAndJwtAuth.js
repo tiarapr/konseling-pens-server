@@ -28,10 +28,9 @@ module.exports = () => {
         const artifacts = Jwt.token.decode(token);
         await Jwt.token.verify(artifacts, process.env.ACCESS_TOKEN_KEY);
 
-        // Ensure you're setting the user data properly in the credentials
         return h.authenticated({
           credentials: {
-            jwt: artifacts.decoded.payload,  // Assuming payload contains the user object
+            jwt: artifacts.decoded.payload, 
           },
           artifacts: { token },
         });
