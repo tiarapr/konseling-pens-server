@@ -1,20 +1,21 @@
 const { Queue } = require('bullmq');
-const redisClient = require('../config/redis');
+const redisConfig = require('../config/redis');
 
-const MailQueue = new Queue('mailQueue', {
-  connection: redisClient,
+const MailQueue = new Queue('{mailQueue}', {
+  connection: redisConfig,
+  prefix: '{mailQueue}',
   defaultJobOptions: {
     attempts: 3,
     backoff: {
       type: 'exponential',
       delay: 1000,
     },
-    removeOnComplete: true, // Clean up completed jobs
-    removeOnFail: 1000, // Keep failed jobs for analysis (1000 jobs)
+    removeOnComplete: true, // Bersihkan job sukses
+    removeOnFail: 1000,     // Simpan max 1000 job gagal
   },
 });
 
-// Add event listeners for monitoring
+// Monitoring errors
 MailQueue.on('error', (error) => {
   console.error('MailQueue error:', error);
 });
@@ -22,6 +23,8 @@ MailQueue.on('error', (error) => {
 // Graceful shutdown
 process.on('SIGINT', async () => {
   await MailQueue.close();
+  console.log('MailQueue connection closed through app termination');
+  process.exit(0);
 });
 
 module.exports = MailQueue;

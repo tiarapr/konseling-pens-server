@@ -1,11 +1,11 @@
 const { Worker } = require('bullmq');
-const redisClient = require('../config/redis');
+const redisConfig = require('../config/redis');
 const WhatsAppService = require('../services/WhatsappService');
 
 const whatsappService = new WhatsAppService();
 
 const WhatsappWorker = new Worker(
-    'whatsappQueue',
+    '{whatsappQueue}',
     async (job) => {
         const { type, data } = job.data;
 
@@ -26,15 +26,20 @@ const WhatsappWorker = new Worker(
 
             console.log(`✅ WhatsApp job ${job.id} (${type}) processed successfully.`);
         } catch (error) {
-            console.error(`❌ Error processing WhatsApp job ${job.id} (${type}):`, error.message);
-            throw error;
+            console.error(
+                `❌ Error processing WhatsApp job ${job.id} (${type}):`,
+                error.message
+            );
+            throw error; 
         }
     },
     {
-        connection: redisClient,
+        connection: redisConfig,
+        prefix: '{whatsappQueue}',
     }
 );
 
+// Event handlers
 WhatsappWorker.on('completed', (job) => {
     console.log(`🎉 Job ${job.id} has completed!`);
 });
