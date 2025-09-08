@@ -67,7 +67,7 @@ class WhatsAppService {
     return this.enqueueTemplateMessage(
       phone,
       'otp_login',
-      'id',
+      'en_US',
       [{ type: 'text', text: otp }]
     );
   }
