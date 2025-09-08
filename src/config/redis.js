@@ -6,19 +6,27 @@ if (!REDIS_URL) {
     throw new Error('REDIS_URL not found in environment variables.');
 }
 
-// Parse the URL to extract components if needed later
 const redisUrlObj = new URL(REDIS_URL);
 
-const redisClient = new IORedis(REDIS_URL, {
+const redisOptions = {
     maxRetriesPerRequest: null,
     enableReadyCheck: true,
     connectTimeout: 10000, // 10 seconds
     family: 0, // Dual stack (IPv4/IPv6)
     host: redisUrlObj.hostname,
     port: redisUrlObj.port,
-    username: redisUrlObj.username,
-    password: redisUrlObj.password,
-});
+    username: redisUrlObj.username || undefined,
+    password: redisUrlObj.password || undefined,
+};
+
+// Aktifkan TLS hanya kalau rediss://
+if (REDIS_URL.startsWith('rediss://')) {
+    redisOptions.tls = {
+        rejectUnauthorized: false,
+    };
+}
+
+const redisClient = new IORedis(redisOptions);
 
 redisClient.on('connect', () => {
     console.log('Connecting to Redis...');
@@ -41,11 +49,10 @@ redisClient.on('reconnecting', () => {
 });
 
 // Graceful shutdown handler
-process.on('SIGINT', () => {
-    redisClient.quit().then(() => {
-        console.log('Redis connection closed through app termination');
-        process.exit(0);
-    });
+process.on('SIGINT', async () => {
+    await redisClient.quit();
+    console.log('Redis connection closed through app termination');
+    process.exit(0);
 });
 
 module.exports = redisClient;
